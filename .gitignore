@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+env/
 build/
 develop-eggs/
 dist/
@@ -69,7 +70,7 @@ docs/_build/
 # PyBuilder
 target/
 
-# Jupyter Notebook
+# IPython Notebook
 .ipynb_checkpoints
 
 # pyenv
@@ -78,13 +79,10 @@ target/
 # celery beat schedule file
 celerybeat-schedule
 
-# SageMath parsed files
-*.sage.py
-
-# Environments
+# dotenv
 .env
-.venv
-env/
+
+# virtualenv
 venv/
 ENV/
 env.bak/
