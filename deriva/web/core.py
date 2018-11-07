@@ -255,8 +255,6 @@ def get_client_auth_context(from_environment=True, fallback=True):
             web.ctx.webauthn2_context = context_from_environment()
             if web.ctx.webauthn2_context is not None and web.ctx.webauthn2_context.client is not None:
                 return
-            else:
-                web.debug("webauthn: failed context_from_environment()")
             if fallback:
                 web.debug(
                     "falling back to webauthn2_manager.get_request_context() after failed context_from_environment()")
@@ -264,8 +262,9 @@ def get_client_auth_context(from_environment=True, fallback=True):
             fallback = True
         if fallback:
             web.ctx.webauthn2_context = webauthn2_manager.get_request_context() if webauthn2_manager else None
-    except (ValueError, IndexError):
-        raise Unauthorized('The requested service requires client authentication.')
+    except (ValueError, IndexError) as e:
+        web.debug("Exception getting client authentication context: %s" % str(e))
+        raise Unauthorized("The requested service requires client authentication.")
 
 
 def web_method():
@@ -351,12 +350,10 @@ class RestHandler(object):
         self.config = self.load_handler_config(handler_config_file)
 
     def load_handler_config(self, config_file):
-        if not config_file:
-            return {}
-
-        if os.path.isfile(config_file):
+        if config_file and os.path.isfile(config_file):
             with open(config_file) as cf:
                 return json.load(cf)
+        return {}
 
     def trace(self, msg):
         web.ctx.deriva_request_trace(msg)
