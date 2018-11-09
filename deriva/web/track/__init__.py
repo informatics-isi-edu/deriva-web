@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Southern California
+# Copyright 2018 University of Southern California
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from deriva.web import export
-from deriva.web import track
+"""DERIVA Web service for UCSC Genome Browser protocol.
+"""
+from deriva.web.track.rest import CustomTracks, TrackDescription
 
 
 def web_urls():
     """Builds and returns the web_urls for web.py.
     """
-    urls = tuple()
-    urls += export.web_urls()
-    urls += track.web_urls()
-
-    return urls
+    urls = (
+        '/track/custom/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)', CustomTracks,
+        '/track/custom/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)/assembly=([^/]+)', CustomTracks,
+        '/track/description/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)', TrackDescription
+    )
+    return tuple(urls)

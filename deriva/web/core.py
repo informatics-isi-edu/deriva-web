@@ -28,9 +28,11 @@ import pytz
 import webauthn2
 import struct
 import urllib
+import requests
 from collections import OrderedDict
 from logging.handlers import SysLogHandler
 from webauthn2.util import merge_config, context_from_environment
+from deriva.core import format_exception
 
 SERVICE_BASE_DIR = os.path.expanduser("~")
 STORAGE_BASE_DIR = os.path.join("deriva", "data")
@@ -122,6 +124,44 @@ class RestException(web.HTTPError):
             hdr = self.headers
         msg = message or self.message
         web.HTTPError.__init__(self, self.status, hdr, msg + '\n')
+
+    @classmethod
+    def from_http_error(cls, e):
+        """Translates a requests.HTTPError into a RestException.
+
+        :param e: a requests.HTTPError instance
+        :return: a RestException based on the input error
+        """
+        assert isinstance(e, requests.HTTPError), "Expected 'requests.HTTPError' object"
+        r = e.response
+        if r.status_code == 400:
+            raise BadRequest(format_exception(e))
+        elif r.status_code == 401:
+            raise Unauthorized(format_exception(e))
+        elif r.status_code == 403:
+            raise Forbidden(format_exception(e))
+        elif r.status_code == 404:
+            raise NotFound(format_exception(e))
+        elif r.status_code == 405:
+            raise NoMethod(format_exception(e))
+        elif r.status_code == 409:
+            raise Conflict(format_exception(e))
+        elif r.status_code == 411:
+            raise LengthRequired(format_exception(e))
+        elif r.status_code == 412:
+            raise PreconditionFailed(format_exception(e))
+        elif r.status_code == 416:
+            raise BadRange(format_exception(e))
+        elif r.status_code == 500:
+            raise InternalServerError(format_exception(e))
+        elif r.status_code == 501:
+            raise NotImplemented(format_exception(e))
+        elif r.status_code == 502:
+            raise BadGateway(format_exception(e))
+        else:
+            logger.error(
+                'Unhandled HTTPError status code {sc} -- {msg}.'.format(sc=r.status_code, msg=format_exception(e)))
+            raise InternalServerError(format_exception(e))
 
 
 class NotModified(RestException):
@@ -343,17 +383,18 @@ class RestHandler(object):
 
     """
 
-    def __init__(self, handler_config_file=None):
+    def __init__(self, handler_config_file=None, default_handler_config=None):
         self.get_body = True
         self.http_etag = None
         self.http_vary = webauthn2_manager.get_http_vary() if webauthn2_manager else None
-        self.config = self.load_handler_config(handler_config_file)
+        self.config = self.load_handler_config(handler_config_file, default_handler_config)
 
-    def load_handler_config(self, config_file):
+    def load_handler_config(self, config_file, default_config=None):
+        config = default_config.copy() if default_config else {}
         if config_file and os.path.isfile(config_file):
             with open(config_file) as cf:
-                return json.load(cf)
-        return {}
+                config.update(json.load(cf))
+        return config
 
     def trace(self, msg):
         web.ctx.deriva_request_trace(msg)
