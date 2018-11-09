@@ -40,6 +40,7 @@ setup(
     scripts=["bin/deriva-web-deploy", "bin/deriva-web-export-prune"],
     package_data={'deriva.web': ["*.wsgi"]},
     data_files=get_data_files(),
+    test_suite="tests",
     requires=[
         'os',
         'sys',

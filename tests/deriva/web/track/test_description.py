@@ -28,7 +28,7 @@ api.DEFAULT_CONFIG['hostname'] = DERIVA_WEB_TRACK_TEST_HOST
 
 
 @unittest.skipIf(not DERIVA_WEB_TRACK_TEST_HOST, '{} not defined'.format(ENV_DERIVA_WEB_TRACK_TEST_HOST))
-class TestCustomTracks (unittest.TestCase):
+class TestTrackDescription (unittest.TestCase):
     """Extremely minimal tests.
     """
     def test_description(self):
