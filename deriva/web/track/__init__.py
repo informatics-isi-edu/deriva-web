@@ -23,7 +23,7 @@ def web_urls():
     """
     urls = (
         '/track/custom/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)', CustomTracks,
-        '/track/custom/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)/assembly=([^/]+)', CustomTracks,
+        '/track/custom/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)/Genome_Assembly=([^/]+)', CustomTracks,
         '/track/description/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)', TrackDescription
     )
     return tuple(urls)
