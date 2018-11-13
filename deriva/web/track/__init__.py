@@ -15,7 +15,7 @@
 #
 """DERIVA Web service for UCSC Genome Browser protocol.
 """
-from deriva.web.track.rest import CustomTracks, TrackDescription
+from deriva.web.track.rest import CustomTracks, TrackDescription, TrackLine
 
 
 def web_urls():
@@ -24,6 +24,7 @@ def web_urls():
     urls = (
         '/track/custom/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)', CustomTracks,
         '/track/custom/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)/Genome_Assembly=([^/]+)', CustomTracks,
-        '/track/description/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)', TrackDescription
+        '/track/description/([^/]+)/([^/:]+):([^/:]+)/RID=([^/]+)', TrackDescription,
+        '/track/line', TrackLine
     )
     return tuple(urls)

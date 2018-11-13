@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import requests
+import web
 from ..core import web_method, RestHandler, RestException
 from . import api
 
@@ -47,3 +48,16 @@ class TrackDescription (RestHandler):
         except requests.HTTPError as e:
             raise RestException.from_http_error(e)
 
+
+class TrackLine (RestHandler):
+    """REST handler for custom tracks.
+    """
+    def __init__(self):
+        super(TrackLine, self).__init__(
+            handler_config_file=api.HANDLER_CONFIG_FILE, default_handler_config=api.DEFAULT_CONFIG)
+
+    @web_method()
+    def GET(self):
+        print(web.ctx.query)
+        params = web.ctx.query[1:].split('&')
+        print(params)
