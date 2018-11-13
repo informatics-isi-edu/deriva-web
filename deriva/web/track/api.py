@@ -62,6 +62,7 @@ DEFAULT_CONFIG = {
         'Genome_Assembly': r"(((reference[ -_]?)?genome|mapping|reference)?[ -_]?(assembly|genome))"
     },
     KEY_EXT_TO_TYPE: {
+        'bam': 'bam',
         'bed': 'bed',
         'bb': 'bigBed',
         'wig': 'wiggle',
@@ -84,17 +85,18 @@ def _get_table_definition(catalog, schema, table):
     return response.json()
 
 
-def _infer_track_query(table_definition, track_column_names, url_template='/{sname}:{tname}/{attributes}', container_rid='RID'):
+def _infer_track_query(table_definition, track_column_names, genome_assembly=None, url_template='{schema}:{table}/{filter}{attributes}', container_rid='RID'):
     """Infers a track query (url) from a table definition.
 
     :param table_definition: the introspected table definition
     :param track_column_names: track column names mapped to regular expressions
+    :param genome_assembly: genome assembly to filter query on
     :param url_template: url template for forming query url
     :param container_rid: the attribute projection for the container's RID
     :return: track query url
     """
     # First, look for column names or ways to map to columns for the data needed in the default track line
-    column_mapping = dict(RID='RID', Container_RID=container_rid)  # RID is always RID, Container_RID can be another RID
+    column_mapping = dict(RID='RID')  # RID is always RID
     for key in track_column_names:
         regex = re.compile(track_column_names[key], re.IGNORECASE)
         for col in table_definition['column_definitions']:
@@ -118,19 +120,25 @@ def _infer_track_query(table_definition, track_column_names, url_template='/{sna
         logger.debug("No mapping for 'Type' column inferred. Will attempt to infer from file extension.")
     logger.debug("Inferred attributes {}".format(column_mapping))
 
-    # TODO: look for genome_assembly and extend query
-
     # URL required for this to be a potential track table
     if 'URL' not in column_mapping:
         return None
 
+    # Test if genome assembly is available for filter
+    if genome_assembly and 'Genome_Assembly' not in column_mapping:
+        logger.info("'Genome_Assembly' not found in '{schema}:{table}' but client requested to filter on it.".format(
+            schema=table_definition['schema_name'], table=table_definition['table_name']
+        ))
+        return None
+
     url = url_template.format(
-        sname=table_definition['schema_name'],
-        tname=table_definition['table_name'],
+        schema=urlquote(table_definition['schema_name']),
+        table=urlquote(table_definition['table_name']),
+        filter='%s=%s/' % (urlquote(column_mapping['Genome_Assembly']), urlquote(genome_assembly)) if genome_assembly else '',
         attributes=','.join([
-            '%s:=%s' % kv
-            for kv in column_mapping.items()
-        ])
+            '%s:=%s' % (urlquote(k), urlquote(v))
+            for (k, v) in column_mapping.items()
+        ] + ['Container_RID:=%s' % container_rid])
     )
     return url
 
@@ -143,7 +151,7 @@ def create_custom_tracks_content(config, catalog_id, schema, table, rids, genome
     :param schema: schema name
     :param table: table name
     :param rids: comma-separated list of RIDs
-    :param genome_assembly: reference genome_assembly (e.g., mm9, mm10, hg18, hg19,...)
+    :param genome_assembly: reference genome assembly (e.g., mm9, mm10, hg18, hg19,...)
     :return: custom tracks text content
     :raise requests.HTTPError: on failure of ERMrest requests
     """
@@ -176,8 +184,11 @@ def create_custom_tracks_content(config, catalog_id, schema, table, rids, genome
     else:
         # Introspect table definition and infer track properties, if possible.
         logger.debug("Table '{}' requires inference")
-        inferred_url = _infer_track_query(table_definition, config[KEY_TRACK_COLUMN_NAMES],
-                                          url_template='/attribute/{sname}:{tname}/' + params['filter'] + '/{attributes}')
+        inferred_url = _infer_track_query(
+            table_definition,
+            config[KEY_TRACK_COLUMN_NAMES],
+            genome_assembly=genome_assembly,
+            url_template='/attribute/{schema}:{table}/{filter}/{inferred}'.format(inferred='{filter}{attributes}', **params))
         if inferred_url:
             query_urls = [inferred_url]
         else:
@@ -189,13 +200,15 @@ def create_custom_tracks_content(config, catalog_id, schema, table, rids, genome
                 # See if we can infer a track query from the related table
                 # TODO: go one more level deep if the fkey is from an association table
                 inferred_url = _infer_track_query(model.schemas[fkey.sname].tables[fkey.tname].prejson(),
-                                                  config[KEY_TRACK_COLUMN_NAMES], container_rid='CONTAINER:RID')
+                                                  config[KEY_TRACK_COLUMN_NAMES],
+                                                  genome_assembly=genome_assembly,
+                                                  container_rid='CONTAINER:RID')
                 if inferred_url:
-                    query_urls.append('/attribute/CONTAINER:=' + schema + ':' + table + '/' + params['filter'] + inferred_url)
+                    query_urls.append('/attribute/CONTAINER:={schema}:{table}/{filter}/{inferred}'.format(inferred=inferred_url, **params))
 
             if not query_urls:
                 # TODO define exception class
-                raise Exception("Could not infer track table properties from '{schema}:{table}'".format(**params))
+                raise Exception("Could not infer track table properties from '{schema}:{table}'".format(schema=schema, table=table))
 
     def row_iter(input_rows):
         """An iterator that attempts to fix input values to comply with genome browsers"""
