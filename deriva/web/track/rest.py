@@ -15,8 +15,11 @@
 #
 import requests
 import web
-from ..core import web_method, RestHandler, RestException
+from ..core import web_method, RestHandler, RestException, BadRequest
 from . import api
+
+import itertools
+from deriva.core import DerivaServer, urlunquote
 
 
 class CustomTracks (RestHandler):
@@ -61,3 +64,28 @@ class TrackLine (RestHandler):
         print(web.ctx.query)
         params = web.ctx.query[1:].split('&')
         print(params)
+        try:
+            return self.process_track_line_params(self.config, params)
+        except requests.HTTPError as e:
+            raise RestException.from_http_error(e)
+
+    def process_track_line_params(self, config, params):
+        server = DerivaServer('https', config['hostname'])
+        catalog = None
+        chain = itertools.chain()
+        track_line_pattern = config['track_line_pattern']
+
+        for param in params:
+            if param.startswith('catalog='):
+                catalog_id = param.replace('catalog=', '', 1)
+                print('catalog id', catalog_id)
+                catalog = server.connect_ermrest(catalog_id)
+            elif param.startswith('ermpath='):
+                if not catalog:
+                    raise BadRequest()
+                ermpath = param.replace('ermpath=', '', 1)
+                ermpath = urlunquote(ermpath)
+                print('unquoted ermpath', ermpath)
+                chain = itertools.chain(chain, catalog.get(ermpath))
+
+        return chain
