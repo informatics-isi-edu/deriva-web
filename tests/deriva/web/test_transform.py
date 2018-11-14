@@ -18,12 +18,15 @@ from deriva.web import transform
 
 
 class TestTransform (unittest.TestCase):
-    """This is a work in progress."""
+    """This test suite requires a valid endpoint that can satisfy the ermpath requests."""
 
     def test_basic(self):
-        params = 'catalog=1&format=track%20type%3D%7BType%7D%20name%3D%22%7BName%7D%22%20description%3D%22%7BDescription%7D%22%20bigDataUrl%3D%7BURL%7D%5Cn&ermpath=%2Fattribute%2FD%3A%3Disa%3Adataset%2FRID%3DTMJ%2FT%3A%3Disa%3Atrack_data%2Fmapping_assembly%3DFACEBASE%253A1-4FZE%2FFF%3A%3Dvocab%3Afile_format%2F%24T%2FContainer_RID%3A%3DD%3ARID%2CRID%2CName%3A%3DRID%2CDescription%3A%3Dfilename%2CType%3A%3DFF%3Aname%2CURL%3A%3Durl'
-        params = params.split('&')
-        results = transform.transform(params)
+        params = [
+            'catalog=1',
+            'format=track type={type} name="{RID}" description="{filename}" bigDataUrl={url}\n',
+            'ermpath=/attribute/D:=isa:dataset/RID=TMJ/T:=isa:track_data/mapping_assembly=FACEBASE%3A1-4FZE/FF:=vocab:file_format/$T/RID,filename,url,type:=FF:name'
+        ]
+        results = transform.transformer(params)
         results = [result for result in results]
         self.assertIsNotNone(results)
         self.assertGreater(len(results), 0)

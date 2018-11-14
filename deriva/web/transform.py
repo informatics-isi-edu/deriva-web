@@ -40,10 +40,11 @@ class Transformer (RestHandler):
 
     @web_method()
     def GET(self):
-        params = web.ctx.query[1:].split('&')
+        logger.debug("query: {}".format(web.ctx.query))
+        params = [urlunquote(param) for param in web.ctx.query[1:].split('&')]
         logger.debug("params: {}".format(params))
         try:
-            return transform(params)
+            return transformer(params)
         except requests.HTTPError as e:
             raise RestException.from_http_error(e)
         except ValueError as e:
@@ -52,7 +53,7 @@ class Transformer (RestHandler):
             raise BadRequest(format_exception(e))
 
 
-def transform(params):
+def transformer(params):
     """Performs the transform operation.
 
     Processes the commands in the order given by the parameters. Supported commands include:
@@ -77,9 +78,9 @@ def transform(params):
             catalog_id = param.replace('catalog=', '', 1)
             catalog = server.connect_ermrest(catalog_id)
         elif param.startswith('format='):
-            format_string = urlunquote(param.replace('format=', '', 1))
+            format_string = param.replace('format=', '', 1)
         elif param.startswith('ermpath='):
-            ermpath = urlunquote(param.replace('ermpath=', '', 1))
+            ermpath = param.replace('ermpath=', '', 1)
             if not catalog:
                 raise ValueError('not connected to a catalog')
             if not format_string:
