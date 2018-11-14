@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 from deriva.web import export
-from deriva.web import track
+from deriva.web import transform
 
 
 def web_urls():
@@ -22,6 +22,6 @@ def web_urls():
     """
     urls = tuple()
     urls += export.web_urls()
-    urls += track.web_urls()
+    urls += transform.web_urls()
 
     return urls
