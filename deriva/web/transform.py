@@ -56,9 +56,9 @@ def transform(params):
     """Performs the transform operation.
 
     Processes the commands in the order given by the parameters. Supported commands include:
-      - `catalog=<catalog_id>`: connects to the specific `<catalog_id>`
-      - `pattern=<pattern>`: use the `<pattern>` for string interpolation based transformation
-      - `ermpath=<ermpath>`: get entities for given `<ermpath>` and transform them w/ current `<pattern>`
+      - `catalog=<catalog_id>`: connects to the specific catalog by `<catalog_id>`
+      - `format=<format_string>`: use the `<format_string>` for string interpolation based transformation
+      - `ermpath=<ermpath_url_fragment>`: get entities for given `<ermpath_url_fragment>`
 
     Any sequence of the above commands may be processed by the transform operation.
 
@@ -66,7 +66,7 @@ def transform(params):
     :return: an iterable of the results
     :raise requests.HTTPError: on failure of ERMrest requests
     :raise ValueError: on bad request parameters
-    :raise KeyError: on mismatch between pattern and ermpath
+    :raise KeyError: on mismatch between format and ermpath
     """
     catalog = None
     format_string = None
