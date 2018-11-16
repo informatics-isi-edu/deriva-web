@@ -20,7 +20,7 @@ import platform
 import requests
 import warnings
 import web
-from deriva.core import DerivaServer, urlunquote, format_exception
+from deriva.core import DerivaServer, urlunquote, format_exception, format_credential
 from .core import web_method, RestHandler, RestException, BadRequest
 
 #: logger for the module
@@ -30,7 +30,7 @@ logger = logging.getLogger('deriva.web.transform')
 hostname = os.getenv('DERIVA_WEB_TRANSFORM_HOSTNAME', platform.node())
 
 #: server variable, can be manipulated by unit test code, but not meant for any other use
-server = DerivaServer('https', hostname)
+server_factory = DerivaServer
 
 
 class PatternTransformer (RestHandler):
@@ -46,7 +46,9 @@ class PatternTransformer (RestHandler):
         params = [urlunquote(param) for param in web.ctx.query[1:].split('&')]
         logger.debug("params: {}".format(params))
         try:
-            return pattern_transformer(catalog_id, params)
+            auth_token = web.cookies().get("webauthn")
+            credentials = format_credential(token=auth_token) if auth_token else None
+            return pattern_transformer(catalog_id, params, credentials)
         except requests.HTTPError as e:
             raise RestException.from_http_error(e)
         except ValueError as e:
@@ -55,7 +57,7 @@ class PatternTransformer (RestHandler):
             raise BadRequest(format_exception(e))
 
 
-def pattern_transformer(catalog_id, params):
+def pattern_transformer(catalog_id, params, credentials=None):
     """Performs the transform operation.
 
     Processes the commands in the order given by the parameters. Supported commands include:
@@ -66,14 +68,15 @@ def pattern_transformer(catalog_id, params):
 
     :param catalog_id: catalog identifier
     :param params: a list of commands
+    :param credentials: client credentials (default: None)
     :return: an iterable of the results
     :raise requests.HTTPError: on failure of ERMrest requests
     :raise ValueError: on bad request parameters
     :raise KeyError: on mismatch between format and ermpath
     """
-    catalog = server.connect_ermrest(catalog_id)
-    format_string = None
+    catalog = server_factory('https', hostname, credentials=credentials).connect_ermrest(catalog_id)
     chain = itertools.chain()
+    format_string = None
 
     for param in params:
         if param.startswith('pattern='):
