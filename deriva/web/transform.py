@@ -32,19 +32,19 @@ hostname = os.getenv('DERIVA_WEB_TRANSFORM_HOSTNAME', platform.node())
 server = DerivaServer('https', hostname)
 
 
-class Transformer (RestHandler):
+class PatternTransformer (RestHandler):
     """REST handler for transform processing.
     """
     def __init__(self):
-        super(Transformer, self).__init__()
+        super(PatternTransformer, self).__init__()
 
     @web_method()
-    def GET(self):
+    def GET(self, catalog_id):
         logger.debug("query: {}".format(web.ctx.query))
         params = [urlunquote(param) for param in web.ctx.query[1:].split('&')]
         logger.debug("params: {}".format(params))
         try:
-            return transformer(params)
+            return pattern_transformer(catalog_id, params)
         except requests.HTTPError as e:
             raise RestException.from_http_error(e)
         except ValueError as e:
@@ -53,38 +53,33 @@ class Transformer (RestHandler):
             raise BadRequest(format_exception(e))
 
 
-def transformer(params):
+def pattern_transformer(catalog_id, params):
     """Performs the transform operation.
 
     Processes the commands in the order given by the parameters. Supported commands include:
-      - `catalog=<catalog_id>`: connects to the specific catalog by `<catalog_id>`
-      - `format=<format_string>`: use the `<format_string>` for string interpolation based transformation
+      - `pattern=<format_string>`: use the `<format_string>` for string interpolation based transformation
       - `ermpath=<ermpath_url_fragment>`: get entities for given `<ermpath_url_fragment>`
 
     Any sequence of the above commands may be processed by the transform operation.
 
+    :param catalog_id: catalog identifier
     :param params: a list of commands
     :return: an iterable of the results
     :raise requests.HTTPError: on failure of ERMrest requests
     :raise ValueError: on bad request parameters
     :raise KeyError: on mismatch between format and ermpath
     """
-    catalog = None
+    catalog = server.connect_ermrest(catalog_id)
     format_string = None
     chain = itertools.chain()
 
     for param in params:
-        if param.startswith('catalog='):
-            catalog_id = param.replace('catalog=', '', 1)
-            catalog = server.connect_ermrest(catalog_id)
-        elif param.startswith('format='):
-            format_string = param.replace('format=', '', 1)
+        if param.startswith('pattern='):
+            format_string = param.replace('pattern=', '', 1)
         elif param.startswith('ermpath='):
             ermpath = param.replace('ermpath=', '', 1)
-            if not catalog:
-                raise ValueError('not connected to a catalog')
             if not format_string:
-                raise ValueError('no string format specified')
+                raise ValueError("no 'pattern' specified")
 
             def _transform(entity):
                 _format_string = format_string
@@ -98,4 +93,4 @@ def transformer(params):
 
 def web_urls():
     """Returns the web urls for the transform service."""
-    return '/transform', Transformer
+    return '/transform/format/(^/)+', PatternTransformer
