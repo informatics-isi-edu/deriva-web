@@ -18,6 +18,7 @@ import logging
 import os
 import platform
 import requests
+import warnings
 import web
 from deriva.core import DerivaServer, urlunquote, format_exception
 from .core import web_method, RestHandler, RestException, BadRequest
@@ -40,6 +41,7 @@ class PatternTransformer (RestHandler):
 
     @web_method()
     def GET(self, catalog_id):
+        warnings.warn("The '{}' service is experimental and not intended for production usage.".format(__name__))
         logger.debug("query: {}".format(web.ctx.query))
         params = [urlunquote(param) for param in web.ctx.query[1:].split('&')]
         logger.debug("params: {}".format(params))
@@ -93,4 +95,4 @@ def pattern_transformer(catalog_id, params):
 
 def web_urls():
     """Returns the web urls for the transform service."""
-    return '/transform/format/(^/)+', PatternTransformer
+    return '/transform/format/([^/]+)', PatternTransformer
