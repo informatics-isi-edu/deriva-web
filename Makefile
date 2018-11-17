@@ -30,7 +30,7 @@ UNINSTALL=$(UNINSTALL_DIRS)
 # make this the default target
 install: conf/wsgi_deriva.conf
 		pip2 install --no-deps 'bagit==1.7.0'
-		pip2 install --no-deps 'bdbag>=1.5.0'
+		pip2 install --no-deps 'bdbag>=1.5.1'
 		pip2 install --no-deps .
 
 testvars:

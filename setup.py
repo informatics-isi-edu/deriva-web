@@ -37,6 +37,7 @@ setup(
     version="0.5.0",
     zip_safe=False,
     packages=find_packages(),
+    namespace_packages=["deriva"],
     scripts=["bin/deriva-web-deploy", "bin/deriva-web-export-prune"],
     package_data={'deriva.web': ["*.wsgi"]},
     data_files=get_data_files(),
