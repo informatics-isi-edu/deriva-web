@@ -22,8 +22,8 @@ class TestTransform (unittest.TestCase):
 
     def test_basic(self):
         params = [
-            'pattern=track type={type} name="{RID}" description="{filename}" bigDataUrl={url}\n',
-            'ermpath=/attribute/D:=isa:dataset/RID=TMJ/T:=isa:track_data/mapping_assembly=FACEBASE%3A1-4FZE/FF:=vocab:file_format/$T/RID,filename,url,type:=FF:name'
+            'format=track type={type} name="{RID}" description="{filename}" bigDataUrl={url}\n',
+            'path=/attribute/D:=isa:dataset/RID=TMJ/T:=isa:track_data/mapping_assembly=FACEBASE%3A1-4FZE/FF:=vocab:file_format/$T/RID,filename,url,type:=FF:name'
         ]
         results = transform.pattern_transformer(1, params)
         results = [result for result in results]

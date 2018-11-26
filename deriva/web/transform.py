@@ -61,8 +61,8 @@ def pattern_transformer(catalog_id, params, credentials=None):
     """Performs the transform operation.
 
     Processes the commands in the order given by the parameters. Supported commands include:
-      - `pattern=<format_string>`: use the `<format_string>` for string interpolation based transformation
-      - `ermpath=<ermpath_url_fragment>`: get entities for given `<ermpath_url_fragment>`
+      - `format=<format_string>`: use the `<format_string>` pattern for string interpolation based transformation
+      - `path=<ermpath_url_fragment>`: get entities for given `<ermpath_url_fragment>`
 
     Any sequence of the above commands may be processed by the transform operation.
 
@@ -79,10 +79,10 @@ def pattern_transformer(catalog_id, params, credentials=None):
     format_string = None
 
     for param in params:
-        if param.startswith('pattern='):
-            format_string = param.replace('pattern=', '', 1)
-        elif param.startswith('ermpath='):
-            ermpath = param.replace('ermpath=', '', 1)
+        if param.startswith('format='):
+            format_string = param.replace('format=', '', 1)
+        elif param.startswith('path='):
+            ermpath = param.replace('path=', '', 1)
             if not format_string:
                 raise ValueError("no 'pattern' specified")
 
