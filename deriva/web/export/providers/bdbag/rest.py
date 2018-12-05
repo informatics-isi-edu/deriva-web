@@ -32,6 +32,7 @@ class ExportBag(RestHandler):
         # perform the export
         output = export(config=json.loads(web.data()),
                         base_dir=output_dir,
+                        service_url=url,
                         propagate_logs=stob(self.config.get("propagate_logs", False)))
         output_metadata = output.values()[0] or {}
 

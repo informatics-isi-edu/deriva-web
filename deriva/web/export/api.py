@@ -78,7 +78,7 @@ def check_access(directory):
     return False
 
 
-def export(config=None, base_dir=None, quiet=False, files_only=False, propagate_logs=False):
+def export(config=None, base_dir=None, service_url=None, quiet=False, files_only=False, propagate_logs=False):
 
     log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
                                     log_path=os.path.abspath(os.path.join(base_dir, '.log')), propagate=propagate_logs)
@@ -133,7 +133,12 @@ def export(config=None, base_dir=None, quiet=False, files_only=False, propagate_
 
         try:
             sys_logger.info("Creating export at [%s] on behalf of user: %s" % (base_dir, user_id))
-            downloader = GenericDownloader(server, output_dir=base_dir, config=config, credentials=credentials)
+            envars = {GenericDownloader.SERVICE_URL_KEY: service_url} if service_url else None
+            downloader = GenericDownloader(server=server,
+                                           output_dir=base_dir,
+                                           envars=envars,
+                                           config=config,
+                                           credentials=credentials)
             return downloader.download(identity=identity, wallet=wallet)
         except DerivaDownloadAuthenticationError as e:
             raise Unauthorized(format_exception(e))

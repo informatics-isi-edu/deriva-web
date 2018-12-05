@@ -18,6 +18,8 @@ import json
 import web
 from deriva.web.core import web_method, RestHandler
 from deriva.web.export.api import create_output_dir, export, HANDLER_CONFIG_FILE
+from deriva.core import stob
+from deriva.transfer import GenericDownloader
 
 
 class ExportFiles(RestHandler):
@@ -27,13 +29,19 @@ class ExportFiles(RestHandler):
     @web_method()
     def POST(self):
         key, output_dir = create_output_dir()
-        file_list = export(config=json.loads(web.data()),
-                           base_dir=output_dir,
-                           files_only=True,
-                           propagate_logs=stob(self.config.get("propagate_logs", False)))
+        url = ''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "", key])
+        output = export(config=json.loads(web.data()),
+                        base_dir=output_dir,
+                        service_url=url,
+                        files_only=True,
+                        propagate_logs=stob(self.config.get("propagate_logs", False)))
         url_list = list()
-        for file_path in file_list.keys():
-            url_list.append(''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "",
-                                     str('%s/%s' % (key, os.path.basename(file_path)))]))
+        for file_path, file_metadata in output.items():
+            remote_paths = file_metadata.get(GenericDownloader.REMOTE_PATHS_KEY)
+            if remote_paths:
+                target_url = remote_paths[0]
+            else:
+                target_url = ''.join([url, str('/%s' % file_path)])
+            url_list.append(target_url)
 
-        return self.create_response(url_list)
+        return self.create_response(url_list, True)
