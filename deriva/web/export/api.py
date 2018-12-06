@@ -18,7 +18,8 @@ import errno
 import logging
 import uuid
 import web
-from deriva.core import urlparse, format_credential, format_exception
+from requests import HTTPError
+from deriva.core import urlparse, format_credential, format_exception, get_new_requests_session
 from deriva.transfer import GenericDownloader
 from deriva.transfer.download import DerivaDownloadAuthenticationError, DerivaDownloadAuthorizationError, \
     DerivaDownloadConfigurationError
@@ -28,19 +29,17 @@ from deriva.web.core import STORAGE_PATH, AUTHENTICATION, DEFAULT_HANDLER_CONFIG
 
 HANDLER_CONFIG_FILE = os.path.join(DEFAULT_HANDLER_CONFIG_DIR, "export", "export_config.json")
 
-logger = logging.getLogger("deriva.web.export")
+logger = logging.getLogger()
 
 
-def configure_logging(level=logging.INFO, log_path=None, propagate=False):
-
+def configure_logging(level=logging.INFO, log_path=None, propagate=True):
+    handler = None
     logger.propagate = propagate
     logger.setLevel(level)
-    if log_path:
+    if log_path and propagate:
         handler = logging.FileHandler(log_path)
-    else:
-        handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-    logger.addHandler(handler)
+        handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        logger.addHandler(handler)
 
     return handler
 
@@ -62,9 +61,9 @@ def get_final_output_path(output_path, output_name=None, ext=''):
     return ''.join([os.path.join(output_path, output_name) if output_name else output_path, ext])
 
 
-def create_access_descriptor(directory, identity):
+def create_access_descriptor(directory, identity, public=False):
     with open(os.path.abspath(os.path.join(directory, ".access")), 'w') as access:
-        access.writelines(''.join([identity if identity else "*", '\n']))
+        access.writelines(''.join([identity if (identity and not public) else "*", '\n']))
 
 
 def check_access(directory):
@@ -78,10 +77,17 @@ def check_access(directory):
     return False
 
 
-def export(config=None, base_dir=None, service_url=None, quiet=False, files_only=False, propagate_logs=False):
+def export(config=None,
+           base_dir=None,
+           service_url=None,
+           public=False,
+           files_only=False,
+           quiet=False,
+           propagate_logs=True):
 
     log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
-                                    log_path=os.path.abspath(os.path.join(base_dir, '.log')), propagate=propagate_logs)
+                                    log_path=os.path.abspath(os.path.join(base_dir, '.log')),
+                                    propagate=propagate_logs)
     try:
         if not config:
             raise BadRequest("No configuration specified.")
@@ -115,18 +121,27 @@ def export(config=None, base_dir=None, service_url=None, quiet=False, files_only
         except (KeyError, AttributeError) as e:
             raise BadRequest('Error parsing configuration: %s' % format_exception(e))
 
+        session = get_new_requests_session()
         try:
-            auth_token = token if token else web.cookies().get("webauthn")
-            credentials = format_credential(token=auth_token,
+            if token:
+                auth_url = ''.join([server["protocol"], "://", server["host"], "/authn/session"])
+                session.cookies.set("webauthn", token, domain=server["host"], path='/')
+                response = session.get(auth_url)
+                response.raise_for_status()
+            credentials = format_credential(token=token if token else web.cookies().get("webauthn"),
                                             username=username,
                                             password=password)
-        except ValueError as e:
+        except (ValueError, HTTPError) as e:
             raise Unauthorized(format_exception(e))
+        finally:
+            if session:
+                session.close()
+                del session
 
         try:
             identity = get_client_identity()
             user_id = username if not identity else identity.get('display_name', identity.get('id'))
-            create_access_descriptor(base_dir, identity=username if not identity else identity.get('id'))
+            create_access_descriptor(base_dir, identity=None if not identity else identity.get('id'), public=public)
             wallet = get_client_wallet()
         except (KeyError, AttributeError) as e:
             raise BadRequest(format_exception(e))
@@ -150,4 +165,5 @@ def export(config=None, base_dir=None, service_url=None, quiet=False, files_only
             raise BadGateway(format_exception(e))
 
     finally:
-        logger.removeHandler(log_handler)
+        if log_handler:
+            logger.removeHandler(log_handler)

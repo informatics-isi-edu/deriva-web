@@ -63,7 +63,7 @@ AUTHENTICATION = SERVICE_CONFIG.get("authentication", None)
 webauthn2_manager = webauthn2.Manager() if AUTHENTICATION == "webauthn" else None
 
 # setup logger and web request log helpers
-logger = logging.getLogger('deriva.web')
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 try:
     # the use of '/dev/log' causes SysLogHandler to assume the availability of Unix sockets
@@ -71,7 +71,7 @@ try:
 except:
     # this fallback allows this file to at least be cleanly imported on non-Unix systems
     sysloghandler = logging.StreamHandler()
-syslogformatter = logging.Formatter('%(name)s[%(process)d.%(thread)d]: %(message)s')
+syslogformatter = logging.Formatter('deriva.web[%(process)d.%(thread)d]: %(message)s')
 sysloghandler.setFormatter(syslogformatter)
 logger.addHandler(sysloghandler)
 
@@ -399,6 +399,18 @@ class RestHandler(object):
     def trace(self, msg):
         web.ctx.deriva_request_trace(msg)
 
+    def parse_querystr(self, querystr):
+        if querystr.startswith("?"):
+            querystr = querystr.lstrip("?")
+        params = querystr.split('&')
+        result = {}
+        for param in params:
+            if param:
+                parts = param.split('=')
+                if parts:
+                    result[parts[0]] = '='.join(parts[1:])
+        return result
+
     def get_content(self, file_path, get_body=True):
 
         web.ctx.status = '200 OK'
@@ -414,18 +426,17 @@ class RestHandler(object):
         except Exception as e:
             raise NotFound(e)
 
-    def create_response(self, urls, force_uri_list=False):
+    def create_response(self, urls, set_location_header=True):
         """Form response for resource creation request."""
         web.ctx.status = '201 Created'
         web.header('Content-Type', 'text/uri-list')
-        if isinstance(urls, str):
-            if not force_uri_list:
-                web.header('Location', urls)
-            body = urls + '\n'
-        elif isinstance(urls, list):
+        if isinstance(urls, list):
+            location = urls[0]
             body = '\n'.join(urls)
         else:
-            body = urls
+            location = body = urls
+        if set_location_header:
+            web.header('Location', location)
         web.header('Content-Length', len(body))
         return body
 

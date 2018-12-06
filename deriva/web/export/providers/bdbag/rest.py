@@ -28,23 +28,27 @@ class ExportBag(RestHandler):
     def POST(self):
         key, output_dir = create_output_dir()
         url = ''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "", key])
+        params = self.parse_querystr(web.ctx.query)
+        public = stob(params.get("public", False))
 
         # perform the export
         output = export(config=json.loads(web.data()),
                         base_dir=output_dir,
                         service_url=url,
-                        propagate_logs=stob(self.config.get("propagate_logs", False)))
+                        public=public,
+                        quiet=stob(self.config.get("quiet_logging", False)),
+                        propagate_logs=stob(self.config.get("propagate_logs", True)))
         output_metadata = output.values()[0] or {}
 
-        return_uri_list = False
+        set_location_header = False
         identifier_landing_page = output_metadata.get("identifier_landing_page")
         if identifier_landing_page:
             url = [identifier_landing_page, url]
-            # return_uri_list = True
+            set_location_header = True
         else:
             identifier = output_metadata.get("identifier")
             if identifier:
                 url = ["https://n2t.net/" + identifier, "https://identifiers.org/" + identifier, url]
-                # return_uri_list = True
+                set_location_header = True
 
-        return self.create_response(url, return_uri_list)
+        return self.create_response(url, set_location_header)

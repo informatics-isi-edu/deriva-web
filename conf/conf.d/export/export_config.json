@@ -1,3 +1,4 @@
 {
-  "propagate_logs":"True"
+  "propagate_logs":"True",
+  "quiet_logging":"False"
 }
