@@ -1,8 +1,8 @@
 
 # this ugly hack necessitated by Ubuntu... grrr...
-SYSPREFIX=$(shell python -c 'import site;print site.getsitepackages()[0]' | sed -e 's|/[^/]\+/[^/]\+/[^/]\+$$||')
+SYSPREFIX=$(shell python3 -c 'import site;print(site.getsitepackages()[0])' | sed -e 's|/[^/]\+/[^/]\+/[^/]\+$$||')
 # try to find the architecture-neutral lib dir by looking for one of our expected prereqs... double grrr...
-PYLIBDIR=$(shell python -c 'import site;import os.path;print [d for d in site.getsitepackages() if os.path.exists(d+"/web")][0]')
+PYLIBDIR=$(shell python3 -c 'import site;import os.path;print([d for d in site.getsitepackages() if os.path.exists(d+"/web")][0])')
 
 CONFDIR=/etc
 SHAREDIR=$(SYSPREFIX)/share/deriva
@@ -43,7 +43,7 @@ testvars:
 		@echo PYLIBDIR=$(PYLIBDIR)
 
 deploy: install
-		env SHAREDIR=$(SHAREDIR) HTTPDCONFDIR=$(HTTPDCONFDIR) deriva-web-deploy
+		env SHAREDIR=$(SHAREDIR) HTTPDCONFDIR=$(HTTPDCONFDIR) SYSPREFIX=$(SYSPREFIX) deriva-web-deploy
 
 redeploy: uninstall deploy
 
@@ -58,8 +58,8 @@ uninstall:
 #       -rmdir --ignore-fail-on-non-empty -p $(UNINSTALL_DIRS)
 
 preinstall_centos:
-		yum -y install python python-pip python-psycopg2 python-dateutil python-webpy pytz python-tzlocal
+		yum -y install python3 python3-pip python3-psycopg2 python3-dateutil pytz python3-tzlocal
 
 preinstall_ubuntu:
-		apt-get -y install python python-pip python-psycopg2 python-dateutil python-webpy python-tz
+		apt-get -y install python python3-pip python3-psycopg2 python3-dateutil python3-tz
 

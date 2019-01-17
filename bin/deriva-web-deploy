@@ -29,8 +29,9 @@ then
 fi
 
 # paths set for installation
-SHAREDIR=${SHAREDIR:-/usr/share/deriva}
-DERIVACONFDIR=${DERIVACONFDIR:-/usr/share/deriva/conf.d}
+SYSPREFIX=${SYSPREFIX:-/usr}
+SHAREDIR=${SHAREDIR:-${SYSPREFIX}/share/deriva}
+DERIVACONFDIR=${DERIVACONFDIR:-${SHAREDIR}/conf.d}
 HTTPDCONFDIR=${HTTPDCONFDIR:-/etc/httpd/conf.d}
 SU=su
 
@@ -90,7 +91,7 @@ pgid ${DAEMONUSER} || pgcreateuser -D -R -S ${DAEMONUSER}
 
 $SU -c "psql -c 'GRANT webauthn TO ${DAEMONUSER}'" - ${PGADMIN}
 $SU -c "bdbag --version" - ${DAEMONUSER}
-$SU -c "python -c 'from deriva.core import bootstrap; bootstrap()'" - ${DAEMONUSER}
+$SU -c "python3 -c 'from deriva.core import bootstrap; bootstrap()'" - ${DAEMONUSER}
 
 if [[ -r /etc/redhat-release ]]
 then
@@ -114,7 +115,7 @@ then
 fi
 
 [[ ! -r ${HTTPDCONFDIR}/wsgi_deriva.conf ]] && cp ${SHAREDIR}/wsgi_deriva.conf  ${HTTPDCONFDIR}/.
-[[ ! -r /etc/cron.daily/deriva-web-export-prune ]] && ln -s /bin/deriva-web-export-prune /etc/cron.daily/deriva-web-export-prune
+[[ ! -L /etc/cron.daily/deriva-web-export-prune ]] && ln -s ${SYSPREFIX}/bin/deriva-web-export-prune /etc/cron.daily/deriva-web-export-prune
 
 # prevent overwrites
 [[ -r /home/${DAEMONUSER}/deriva_config.json ]] || $SU -c "cp -a ${SHAREDIR}/deriva_config.json ." - "${DAEMONUSER}"
