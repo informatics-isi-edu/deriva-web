@@ -29,9 +29,9 @@ UNINSTALL=$(UNINSTALL_DIRS)
 
 # make this the default target
 install: conf/wsgi_deriva.conf
-		pip2 install --no-deps 'bagit==1.7.0'
-		pip2 install --no-deps 'bdbag>=1.5.1'
-		pip2 install --no-deps .
+		pip3 install --no-deps 'bagit==1.7.0'
+		pip3 install --no-deps 'bdbag>=1.5.1'
+		pip3 install --no-deps .
 
 testvars:
 		@echo DAEMONUSER=$(DAEMONUSER)
@@ -51,7 +51,7 @@ conf/wsgi_deriva.conf: conf/wsgi_deriva.conf.in
 		./install-script -M sed -R @PYLIBDIR@=$(PYLIBDIR) @WSGISOCKETPREFIX@=$(WSGISOCKETPREFIX) @DAEMONUSER@=$(DAEMONUSER) -o root -g root -m a+r -p -D $< $@
 
 uninstall:
-		-pip2 uninstall -y deriva.web
+		-pip3 uninstall -y deriva.web
 		rm -f /home/${DAEMONUSER}/deriva_config.json
 		rm -f ${HTTPDCONFDIR}/wsgi_deriva.conf
 		rm -f /etc/cron.daily/deriva-web-export-prune

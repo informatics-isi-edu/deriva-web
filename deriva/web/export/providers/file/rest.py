@@ -34,7 +34,7 @@ class ExportFiles(RestHandler):
         public = stob(params.get("public", False))
 
         # perform the export
-        output = export(config=json.loads(web.data()),
+        output = export(config=json.loads(web.data().decode()),
                         base_dir=output_dir,
                         service_url=url,
                         files_only=True,

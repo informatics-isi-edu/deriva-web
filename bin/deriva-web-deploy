@@ -120,13 +120,4 @@ fi
 [[ -r /home/${DAEMONUSER}/deriva_config.json ]] || $SU -c "cp -a ${SHAREDIR}/deriva_config.json ." - "${DAEMONUSER}"
 [[ -r /home/${DAEMONUSER}/conf.d ]] || $SU -c "cp -ra ${DERIVACONFDIR} ." - "${DAEMONUSER}"
 
-### DB not used atm ###
-#if ! pgdbid "${DAEMONUSER}"
-#then
-#    $SU -c "createdb -O ${DAEMONUSER} ${DAEMONUSER}" - ${PGADMIN}
-#fi
-
-# this is supposed to be idempotent too...
-#$SU -c "deriva-db-init" - "${DAEMONUSER}"
-
 # service httpd restart
