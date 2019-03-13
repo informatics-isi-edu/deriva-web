@@ -7,7 +7,7 @@ The `deriva` webservice provides a REST interface facade for various Deriva soft
 
 
 ### Prerequisites
-1. Python 2.7 or higher
+1. Python 3.5 or higher
 2. ERMrest installed.
 3. Webauthn installed.
 
