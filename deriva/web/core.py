@@ -18,7 +18,9 @@
 """
 
 import os
+import sys
 import logging
+import traceback
 import web
 import json
 import random
@@ -32,6 +34,7 @@ import requests
 from collections import OrderedDict
 from logging.handlers import SysLogHandler
 from webauthn2.util import merge_config, context_from_environment
+from webauthn2.rest import get_log_parts, request_trace_json, request_final_json
 from deriva.core import format_exception
 
 SERVICE_BASE_DIR = os.path.expanduser("~")
@@ -78,16 +81,10 @@ logger.addHandler(sysloghandler)
 
 def log_parts():
     """Generate a dictionary of interpolation keys used by our logging template."""
-    now = datetime.datetime.now(pytz.timezone('UTC'))
-    elapsed = (now - web.ctx.deriva_start_time)
-    client_identity_obj = web.ctx.webauthn2_context and web.ctx.webauthn2_context.client or None
-    parts = dict(
-        elapsed=elapsed.seconds + 0.001 * (elapsed.microseconds / 1000),
-        client_ip=web.ctx.ip,
-        client_identity_obj=client_identity_obj,
-        reqid=web.ctx.deriva_request_guid
-    )
-    return parts
+    return get_log_parts('derivaweb_start_time',
+                         'derivaweb_request_guid',
+                         'derivaweb_request_content_range',
+                         'derivaweb_content_type')
 
 
 def request_trace(tracedata):
@@ -95,18 +92,7 @@ def request_trace(tracedata):
 
        tracedata: a string representation of trace event data
     """
-    parts = log_parts()
-    od = OrderedDict([
-        (k, v) for k, v in [
-            ('elapsed', parts['elapsed']),
-            ('req', parts['reqid']),
-            ('trace', tracedata),
-            ('client', parts['client_ip']),
-            ('user', parts['client_identity_obj']),
-        ]
-        if v
-    ])
-    logger.info(json.dumps(od, separators=(', ', ':')).encode('utf-8'))
+    logger.info(request_trace_json(tracedata, log_parts()))
 
 
 class RestException(web.HTTPError):
@@ -301,7 +287,8 @@ def get_client_auth_context(from_environment=True, fallback=True):
         else:
             fallback = True
         if fallback:
-            web.ctx.webauthn2_context = webauthn2_manager.get_request_context() if webauthn2_manager else None
+            web.ctx.webauthn2_context = \
+                webauthn2_manager.get_request_context() if webauthn2_manager else  web.ctx.webauthn2_context
     except (ValueError, IndexError) as e:
         web.debug("Exception getting client authentication context: %s" % str(e))
         raise Unauthorized("The requested service requires client authentication.")
@@ -313,14 +300,16 @@ def web_method():
     def helper(original_method):
         def wrapper(*args):
             # request context init
-            web.ctx.deriva_request_guid = base64.b64encode(struct.pack('Q', random.getrandbits(64)))
-            web.ctx.deriva_start_time = datetime.datetime.now(pytz.timezone('UTC'))
-            web.ctx.deriva_request_content_range = '-/-'
-            web.ctx.deriva_request_error_detail = None
-            web.ctx.deriva_content_type = None
+            web.ctx.derivaweb_request_guid = base64.b64encode(struct.pack('Q', random.getrandbits(64))).decode()
+            web.ctx.derivaweb_start_time = datetime.datetime.now(pytz.timezone('UTC'))
+            web.ctx.derivaweb_request_content_range = '-/-'
+            web.ctx.derivaweb_content_type = None
+            web.ctx.derivaweb_request_error_detail = None
+            web.ctx.derivaweb_request_trace = request_trace
             web.ctx.webauthn2_manager = webauthn2_manager
             web.ctx.webauthn2_context = webauthn2.Context()  # set empty context for sanity
-            web.ctx.deriva_request_trace = request_trace
+            web.ctx.webauthn2_context.tracking = None
+            extra_log_parts = dict()
 
             # get client authentication context
             get_client_auth_context(fallback=False)
@@ -329,49 +318,20 @@ def web_method():
                 return original_method(*args)
             except web.HTTPError as e:
                 web.ctx.deriva_request_error_detail = e.data
+                extra_log_parts.update({'detail': web.ctx.deriva_request_error_detail})
                 raise
             except Exception as e:
-                web.ctx.deriva_request_error_detail = str(e)
-                raise
+                # log and rethrow all errors so web.ctx reflects error prior to request_final_log below...
+                et, ev, tb = sys.exc_info()
+                web.debug(
+                    'Got unhandled exception in web_method()',
+                    e,
+                    traceback.format_exception(et, ev, tb),
+                )
+                raise InternalServerError(str(e))
             finally:
                 # finalize
-                parts = log_parts()
-                session = web.ctx.webauthn2_context.session if web.ctx.webauthn2_context else None
-                if session is None or isinstance(session, dict):
-                    pass
-                else:
-                    session = session.to_dict()
-
-                try:
-                    dcctx = web.ctx.env.get('HTTP_DERIVA_CLIENT_CONTEXT', 'null')
-                    dcctx = urllib.unquote(dcctx)
-                    dcctx = json.loads(dcctx)
-                except:
-                    dcctx = None
-
-                od = OrderedDict([
-                    (k, v) for k, v in [
-                        ('elapsed', parts['elapsed']),
-                        ('req', parts['reqid']),
-                        ('scheme', web.ctx.protocol),
-                        ('host', web.ctx.host),
-                        ('status', web.ctx.status),
-                        ('detail', web.ctx.deriva_request_error_detail),
-                        ('method', web.ctx.method),
-                        ('path', web.ctx.env['REQUEST_URI']),
-                        ('range', web.ctx.deriva_request_content_range),
-                        ('type', web.ctx.deriva_content_type),
-                        ('client', parts['client_ip']),
-                        ('user', parts['client_identity_obj']),
-                        ('referrer', web.ctx.env.get('HTTP_REFERER')),
-                        ('agent', web.ctx.env.get('HTTP_USER_AGENT')),
-                        ('session', session),
-                        ('track', web.ctx.webauthn2_context.tracking if web.ctx.webauthn2_context else None),
-                        ('dcctx', dcctx),
-                    ]
-                    if v
-                ])
-                logger.info(json.dumps(od, separators=(', ', ':')).encode('utf-8'))
+                logger.info(request_final_json(log_parts(), extra_log_parts))
 
         return wrapper
 

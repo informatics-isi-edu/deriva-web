@@ -32,13 +32,13 @@ class ExportBag(RestHandler):
         public = stob(params.get("public", False))
 
         # perform the export
-        output = export(config=json.loads(web.data()),
+        output = export(config=json.loads(web.data().decode()),
                         base_dir=output_dir,
                         service_url=url,
                         public=public,
                         quiet=stob(self.config.get("quiet_logging", False)),
                         propagate_logs=stob(self.config.get("propagate_logs", True)))
-        output_metadata = output.values()[0] or {}
+        output_metadata = list(output.values())[0] or {}
 
         set_location_header = False
         identifier_landing_page = output_metadata.get("identifier_landing_page")

@@ -34,7 +34,7 @@ setup(
     url='https://github.com/informatics-isi-edu/deriva-web',
     maintainer='USC Information Sciences Institute ISR Division',
     maintainer_email='isrd-support@isi.edu',
-    version="0.5.2",
+    version="0.6.1",
     zip_safe=False,
     packages=find_packages(),
     namespace_packages=["deriva"],
@@ -43,16 +43,6 @@ setup(
     data_files=get_data_files(),
     test_suite="tests",
     requires=[
-        'os',
-        'sys',
-        'platform',
-        'logging',
-        'mimetypes',
-        'shutil',
-        'tempfile',
-        'urlparse',
-        'simplejson',
-        'ordereddict',
         'requests',
         'certifi',
         "web.py",
@@ -67,7 +57,9 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         "Operating System :: POSIX",
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7'
         "Topic :: Internet :: WWW/HTTP"
     ]
 )

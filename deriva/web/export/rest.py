@@ -16,6 +16,7 @@
 import os
 import web
 import urllib
+from deriva.core.utils.mime_utils import guess_content_type
 from deriva.web.core import web_method, RestHandler, NotFound, Forbidden, BadRequest, STORAGE_PATH
 from deriva.web.export.api import check_access, HANDLER_CONFIG_FILE
 
@@ -30,10 +31,11 @@ class ExportRetrieve (RestHandler):
         web.header('Content-Type', web.ctx.deriva_content_type)
         return self.get_content(file_path, web.ctx.webauthn2_context)
 
-    def send_content(self, file_path):
-        web.ctx.deriva_content_type = 'application/octet-stream'  # should eventually try to be more specific here
+    def send_content(self, file_path, guess_content=True):
+        web.ctx.deriva_content_type = \
+            'application/octet-stream' if not guess_content else guess_content_type(file_path)
         web.header('Content-Type', web.ctx.deriva_content_type)
-        web.header('Content-Disposition', "filename*=UTF-8''%s" % urllib.quote(os.path.basename(file_path)))
+        web.header('Content-Disposition', "filename*=UTF-8''%s" % urllib.parse.quote(os.path.basename(file_path)))
         return self.get_content(file_path)
 
     @web_method()
