@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from deriva.web.core import RestHandler
 from deriva.web.export.rest import ExportRetrieve
 from deriva.web.export.providers.file.rest import ExportFiles
 from deriva.web.export.providers.bdbag.rest import ExportBag
@@ -22,6 +23,7 @@ def web_urls():
     """Builds and returns the web_urls for web.py.
     """
     urls = (
+        '/export/?', RestHandler,
         '/export/bdbag/?', ExportBag,
         '/export/bdbag/([^/]+)', ExportRetrieve,
         '/export/bdbag/([^/]+)/(.+)', ExportRetrieve,

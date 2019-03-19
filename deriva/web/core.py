@@ -417,5 +417,5 @@ class RestHandler(object):
         if hasattr(self, 'GET'):
             return self.GET(*args)
         else:
-            raise NoMethod('Method HEAD not supported for this resource.')
+            raise NoMethod()
 
