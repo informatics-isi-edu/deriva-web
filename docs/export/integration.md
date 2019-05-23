@@ -15,21 +15,24 @@ objects. A template output descriptor maps one or more source table queries to o
 The object structure of an export template annotation is defined as follows:
 
 ## root (object)
-| Variable | Type | Inclusion| Description
+
+| Variable | Type | Inclusion| Description |
 | --- | --- | --- | --- |
 |`templates` | array[`template`] | required | An array of `template`
 
 ## `template` (object)
-| Variable | Type | Inclusion| Description
+
+| Variable | Type | Inclusion | Description |
 | --- | --- | --- | --- |
 | `displayname` | string | required | The display name that will be used to populate the Chaise export format drop-down box for this `template`.
 | `type` | string, enum [`"FILE"`,`"BAG"`] | required | One of two keywords; `"FILE"` or `"BAG"`, used to determine the container format for results.
 | `outputs` | array[`output`] | required | An array of `output` objects. See below.
 
 ## `output` (object)
-| Variable | Type | Inclusion| Description
-| --- | --- | --- | --- |
-| `source` | `source` | required | An object that contains parameters used to generate source data by querying ERMrest.
+
+|Variable|Type|Inclusion|Description|
+|---| ---| --- | --- |
+|`source`|`source` | required | An object that contains parameters used to generate source data by querying ERMrest.
 | `destination` | `destination` | required | An object that contains parameters used to render the results of the source query into a specified destination format.
 
 ## Output details
@@ -73,13 +76,15 @@ The following are some examples to better understand the output syntax. These ar
 
 
 ## `source` (object)
-| Variable | Type | Inclusion| Description
+
+| Variable | Type | Inclusion | Description |
 | --- | --- | --- | --- |
 | `api` | string, enum [`entity`,`attribute`, `attributegroup`] | required | The type of ERMrest query projection to perform.  Valid values are `entity`,`attribute`, and `attributegroup`.
 | `path` | string | optional | An optional ERMrest path predicate. The string MUST be escaped according to [RFC 3986](https://tools.ietf.org/html/rfc3986) if it contains user-generated identifiers that use the reserved character set. See the [ERMRest URL conventions](https://github.com/informatics-isi-edu/ermrest/blob/master/docs/api-doc/index.md#url-conventions) for additional information.
 
 ## `destination` (object)
-| Variable | Type | Inclusion| Description
+
+| Variable | Type | Inclusion | Description |
 | --- | --- | --- | --- |
 | `name` | string | required | The base name to use for the output file.
 | `type` | string | required | A type keyword that determines the output format. Supported values are dependent on the `template`.`type` selected. For the `FILE` type, the values `csv`, `json`, are currently supported. For the `BAG` type, the values `csv`, `json`, `fetch` and `download` are currently supported. See additional notes on destination format types.
@@ -88,7 +93,7 @@ The following are some examples to better understand the output syntax. These ar
 ## Supported output formats
 The following output format types are supported by default:
 
-| Tag | Format | Description
+| Tag | Format | Description |
 | --- | --- | --- |
 |[`csv`](#csv)|CSV|CSV format with column header row.
 |[`json`](#json)|JSON|JSON Array of row objects.

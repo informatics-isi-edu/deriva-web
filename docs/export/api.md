@@ -47,7 +47,7 @@ The input data is composed of a JSON object with the following form:
 
 ##### `query` (object)
 
-| Parent Object | Variable | Type | Inclusion| Description |Interpolatable
+| Parent Object | Variable | Type | Inclusion| Description |Interpolatable |
 | --- | --- | --- | --- | --- | --- |
 |*query*|*processor*|string|required|This is a string value used to select from one of the built-in query output processor formats. Valid values are `env`, `csv`, `json`, `json-stream`, `download`, or `fetch`.|No
 |*query*|*processor_type*|string|optional|A fully qualified Python class name declaring an external processor class instance to use. If this parameter is present, it OVERRIDES the default value mapped to the specified `processor`. This class MUST be derived from the base class `deriva.transfer.download.processors.BaseDownloadProcessor`. For example, `"processor_type": "deriva.transfer.download.processors.CSVDownloadProcessor"`.|No
