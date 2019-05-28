@@ -1,4 +1,4 @@
-deriva-web
+Auxiliary web services for DERIVA (deriva-web)
 ================================================
 
 .. toctree::

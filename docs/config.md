@@ -1,8 +1,8 @@
-# deriva Configuration Guide
+# `deriva-web` Configuration Guide
 The service uses two files for configuration: `deriva_config.json` for service specific configuration and `wsgi_deriva.conf` to configure WSGI module support in Apache HTTPD.
 
 ### deriva_config.json
-The installation and deployment process creates an `deriva` user on the local system, including a home directory for this user.  The service-specific configuration file `deriva_config.json` is located in this directory.
+The installation and deployment process creates a `deriva` user on the local system, including a home directory for this user.  The service-specific configuration file `deriva_config.json` is located in this directory.
 
 Below is a sample of the default configuration file:
 
