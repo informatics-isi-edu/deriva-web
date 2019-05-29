@@ -2,7 +2,7 @@
 
 The `deriva` service integration with Chaise is driven primarily through the use of ERMrest annotations.
 
-### Export
+## Export
 
 Export of data from Chaise is configured through the use of *export templates*. An export template is a JSON object that
  is used in an ERMrest table annotation payload. The annotation is specified using the following annotation key:
@@ -14,13 +14,13 @@ objects. A template output descriptor maps one or more source table queries to o
 
 The object structure of an export template annotation is defined as follows:
 
-## root (object)
+### root (object)
 
 | Variable | Type | Inclusion| Description |
 | --- | --- | --- | --- |
 |`templates` | array[`template`] | required | An array of `template`
 
-## `template` (object)
+### `template` (object)
 
 | Variable | Type | Inclusion | Description |
 | --- | --- | --- | --- |
@@ -28,14 +28,14 @@ The object structure of an export template annotation is defined as follows:
 | `type` | string, enum [`"FILE"`,`"BAG"`] | required | One of two keywords; `"FILE"` or `"BAG"`, used to determine the container format for results.
 | `outputs` | array[`output`] | required | An array of `output` objects. See below.
 
-## `output` (object)
+### `output` (object)
 
 |Variable|Type|Inclusion|Description|
 |---| ---| --- | --- |
 |`source`|`source` | required | An object that contains parameters used to generate source data by querying ERMrest.
 | `destination` | `destination` | required | An object that contains parameters used to render the results of the source query into a specified destination format.
 
-## Output details
+### Output details
 
 - The table entity that the template is bound to is considered the *root* of the query for join purposes. Therefore this is how a query is going to be constructed based on the given attributes:
 
@@ -75,14 +75,14 @@ The following are some examples to better understand the output syntax. These ar
 
 
 
-## `source` (object)
+### `source` (object)
 
 | Variable | Type | Inclusion | Description |
 | --- | --- | --- | --- |
 | `api` | string, enum [`entity`,`attribute`, `attributegroup`] | required | The type of ERMrest query projection to perform.  Valid values are `entity`,`attribute`, and `attributegroup`.
 | `path` | string | optional | An optional ERMrest path predicate. The string MUST be escaped according to [RFC 3986](https://tools.ietf.org/html/rfc3986) if it contains user-generated identifiers that use the reserved character set. See the [ERMRest URL conventions](https://github.com/informatics-isi-edu/ermrest/blob/master/docs/api-doc/index.md#url-conventions) for additional information.
 
-## `destination` (object)
+### `destination` (object)
 
 | Variable | Type | Inclusion | Description |
 | --- | --- | --- | --- |
@@ -90,7 +90,7 @@ The following are some examples to better understand the output syntax. These ar
 | `type` | string | required | A type keyword that determines the output format. Supported values are dependent on the `template`.`type` selected. For the `FILE` type, the values `csv`, `json`, are currently supported. For the `BAG` type, the values `csv`, `json`, `fetch` and `download` are currently supported. See additional notes on destination format types.
 | `params` | object | conditionally required | An object containing destination format-specific parameters.  Some destination formats (particularly those that require some kind of post-processing or data transformation), may require additional parameters  to be specified.
 
-## Supported output formats
+### Supported output formats
 The following output format types are supported by default:
 
 | Tag | Format | Description |
@@ -100,12 +100,12 @@ The following output format types are supported by default:
 |[`download`](#download)|Asset download|File assets referenced by URL are downloaded to local storage relative to `destination.name`.
 |[`fetch`](#fetch)|Asset reference|`Bag`-based. File assets referenced by URL are assigned as remote file references via `fetch.txt`.
 
-## Output format details
+### Output format details
 Each _output format processor_ is designed for a specific task, and the task types may vary for a given data export task.
 Some _output formats_ are designed to handle the export of tabular data from the catalog, while others are meant to handle the export of file assets that are referenced by tables in the catalog.
 Other _output formats_ may be implemented that could perform a combination of these tasks, implement a new format, or perform some kind of data transformation.
 <a name="csv"></a>
-### `csv`
+#### `csv`
 This format processor generates a standard Comma Separated Values formatted text file. The first row is a comma-delimited list of column names, and all subsequent rows are comma-delimted values.  Fields are not enclosed in quotation marks.
 
 Example output:
@@ -116,7 +116,7 @@ CNP0002_F15,600018902293,rs6265,0/0,HumanOmniExpress
 ```
 
 <a name="json"></a>
-### `json`
+#### `json`
 This format processor generates a text file containing a JSON Array of row data, where each JSON object in the array represents one row.
 
 Example output:
@@ -126,7 +126,7 @@ Example output:
  ```
 
 <a name="download"></a>
-### `download`
+#### `download`
 This format processor performs multiple actions. First, it issues a `json-stream` catalog query using the parameters specified in `source`,
 in order to generate a _file download manifest_ file named `download-manifest.json`. This manifest is simply a set of rows which MUST contain at least one field named `url`, and MAY contain a field named `filename`,
 and MAY contain other arbitrary fields. If the `filename` field is present, it will be appended to the final (calculated) `destination.name`, otherwise the service will perform a _HEAD_ HTTP request against
@@ -140,7 +140,7 @@ perform the download are returned.  Additionally, use of the `attribute` API all
 
 For more information on ERMRest attribute API syntax, see the following [documentation](https://github.com/informatics-isi-edu/ermrest/blob/master/docs/api-doc/data/naming.md#attribute-names).
 <a name="fetch"></a>
-### `fetch`
+#### `fetch`
 This format processor performs multiple actions. First, it issues a `json-stream` catalog query against the specified `query_path`, in order to generate a  _file download manifest_.
 This manifest is simply a set of rows which MUST contain at least one field named `url`, and SHOULD contain two additional fields: `length`,
 which is the size of the referenced file in bytes, and (at least) one of the following _checksum_ fields; `md5`, `sha1`, `sha256`, `sha512`. If the _length_ and appropriate _checksum_ fields are missing,
@@ -155,7 +155,7 @@ the `url` for the `Content-Disposition` of the referenced file asset. If this qu
 Also, like the `download` processor, when configuring the `source` parameter block for `fetch` output, each row in the result of the query MUST contain the required columns stated above.
 The type of `source.api` that is used does not matter, as long as the result data rows contain the necessary columns. As with the `download` processor, the use of the `attribute` ERMRest query API is recommended.
 
-### Example 1
+#### Example 1
 This example shows how a Bag can be created that includes both tabular data and localized assets by using an attribute query to select a
 filtered set of files from an image asset table.
 ```json
@@ -190,7 +190,7 @@ filtered set of files from an image asset table.
   ]
 }
 ```
-### Example 2
+#### Example 2
 This example shows how a Bag can be created with remote file references by using an attribute query to select a
 filtered set of file types and mapping columns from an image asset table, which can then be used to automatically create
  the bag's `fetch.txt`.
@@ -246,7 +246,7 @@ filtered set of file types and mapping columns from an image asset table, which 
   ]
 }
 ```
-### Example 3
+#### Example 3
 This example maps multiple single table queries to single FILE outputs using the FASTA format.
 ```json
 {
@@ -323,7 +323,7 @@ This example maps multiple single table queries to single FILE outputs using the
   ]
 }
 ```
-### Example 4
+#### Example 4
 This example uses the same queries from Example 1, but instead packages the results in a Bag archive rather than as a set
  of individual files.
 ```json

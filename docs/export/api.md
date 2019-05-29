@@ -1,9 +1,8 @@
-# deriva/export REST API reference
+# REST API reference: `deriva/export`
 The `deriva/export` service endpoint provides export functionality from an ERMrest catalog via a REST API.
 The service is generally configured to be co-located on the same server with the ERMrest catalog that it is providing data services for.
 
-**Exporting individual files**
-----
+## Exporting Files
 
 This API endpoint is used to perform one or more queries to an ERMrest catalog and create corresponding individual 
 result files which can then be retrieved via `GET`.  URLs for result files are returned in the response body as `Content-Type:text/uri-list`.
@@ -214,8 +213,7 @@ $.ajax({
 });
 ```
 	
-**Exporting Bags**
-----
+## Exporting Bags
 
 This API endpoint is used to perform one or more queries to an ERMrest catalog and create a 
 [BDBag](https://github.com/fair-research/bdbag) archive file which can then be retrieved via `GET`.  The URL for the result bag is returned in the response body as `Content-Type:text/uri-list`.
