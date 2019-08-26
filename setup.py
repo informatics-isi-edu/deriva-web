@@ -34,7 +34,7 @@ setup(
     url='https://github.com/informatics-isi-edu/deriva-web',
     maintainer='USC Information Sciences Institute ISR Division',
     maintainer_email='isrd-support@isi.edu',
-    version="0.8.0",
+    version="0.8.1",
     zip_safe=False,
     packages=find_packages(),
     scripts=["bin/deriva-web-deploy", "bin/deriva-web-export-prune"],

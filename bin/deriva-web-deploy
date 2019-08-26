@@ -84,8 +84,8 @@ chmod og+rx /home/${DAEMONUSER}
 chgrp apache /home/${DAEMONUSER}
 
 mkdir -p /var/www/deriva
-chown ${DAEMONUSER} /var/www/deriva
-chgrp apache /var/www/deriva
+chown -R ${DAEMONUSER} /var/www/deriva
+chgrp -R apache /var/www/deriva
 
 pgid ${DAEMONUSER} || pgcreateuser -D -R -S ${DAEMONUSER}
 
