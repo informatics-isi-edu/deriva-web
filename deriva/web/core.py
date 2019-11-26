@@ -288,7 +288,8 @@ def get_client_auth_context(from_environment=True, fallback=True):
             fallback = True
         if fallback:
             web.ctx.webauthn2_context = \
-                webauthn2_manager.get_request_context() if webauthn2_manager else  web.ctx.webauthn2_context
+                webauthn2_manager.get_request_context(require_client=True) if \
+                    webauthn2_manager else web.ctx.webauthn2_context
     except (ValueError, IndexError) as e:
         web.debug("Exception getting client authentication context: %s" % str(e))
         raise Unauthorized("The requested service requires client authentication.")
