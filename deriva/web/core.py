@@ -252,9 +252,10 @@ def client_has_identity(identity):
     if identity == "*":
         return True
     get_client_auth_context()
-    for attrib in web.ctx.webauthn2_context.attributes:
-        if attrib['id'] == identity:
-            return True
+    if web.ctx.webauthn2_context.attributes is not None:
+        for attrib in web.ctx.webauthn2_context.attributes:
+            if attrib['id'] == identity:
+                return True
     return False
 
 
@@ -284,12 +285,14 @@ def get_client_auth_context(from_environment=True, fallback=True):
             if fallback:
                 web.debug(
                     "falling back to webauthn2_manager.get_request_context() after failed context_from_environment()")
+            else:
+                raise Unauthorized("The requested service requires client authentication.")
         else:
             fallback = True
         if fallback:
             web.ctx.webauthn2_context = \
                 webauthn2_manager.get_request_context(require_client=True) if \
-                    webauthn2_manager else web.ctx.webauthn2_context
+                webauthn2_manager else web.ctx.webauthn2_context
     except (ValueError, IndexError) as e:
         web.debug("Exception getting client authentication context: %s" % str(e))
         raise Unauthorized("The requested service requires client authentication.")
