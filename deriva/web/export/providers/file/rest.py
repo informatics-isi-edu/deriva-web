@@ -28,6 +28,7 @@ class ExportFiles(RestHandler):
 
     @web_method()
     def POST(self):
+        self.check_authenticated()
         key, output_dir = create_output_dir()
         url = ''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "", key])
         params = self.parse_querystr(web.ctx.query)
