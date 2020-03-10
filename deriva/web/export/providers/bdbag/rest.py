@@ -38,7 +38,9 @@ class ExportBag(RestHandler):
                         service_url=url,
                         public=public,
                         quiet=stob(self.config.get("quiet_logging", False)),
-                        propagate_logs=stob(self.config.get("propagate_logs", True)))
+                        propagate_logs=stob(self.config.get("propagate_logs", True)),
+                        allow_anonymous=stob(self.config.get("allow_anonymous", False)),
+                        max_payload_size=self.config.get(max_payload_size_mb))
         output_metadata = list(output.values())[0] or {}
 
         set_location_header = False
@@ -49,7 +51,7 @@ class ExportBag(RestHandler):
         else:
             identifier = output_metadata.get("identifier")
             if identifier:
-                url = ["https://n2t.net/" + identifier, "https://identifiers.org/" + identifier, url]
+                url = ["https://identifiers.org/" + identifier, "https://n2t.net/" + identifier, url]
                 set_location_header = True
 
         return self.create_response(url, set_location_header)

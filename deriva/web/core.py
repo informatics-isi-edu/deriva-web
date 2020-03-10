@@ -43,6 +43,7 @@ STORAGE_BASE_DIR = os.path.join("deriva", "data")
 DEFAULT_CONFIG = {
     "storage_path": os.path.abspath(os.path.join(SERVICE_BASE_DIR, STORAGE_BASE_DIR)),
     "authentication": None,
+    "require_authentication": True,
     "404_html": "<html><body><h1>Resource Not Found</h1><p>The requested resource could not be found at this location."
                 "</p><p>Additional information:</p><p><pre>%(message)s</pre></p></body></html>",
     "403_html": "<html><body><h1>Access Forbidden</h1><p>%(message)s</p></body></html>",
@@ -63,6 +64,7 @@ STORAGE_PATH = SERVICE_CONFIG.get('storage_path')
 
 # instantiate webauthn2 manager if using webauthn
 AUTHENTICATION = SERVICE_CONFIG.get("authentication", None)
+REQUIRE_AUTHENTICATION = SERVICE_CONFIG.get("require_authentication", True)
 webauthn2_manager = webauthn2.Manager() if AUTHENTICATION == "webauthn" else None
 
 # setup logger and web request log helpers
@@ -359,8 +361,9 @@ class RestHandler(object):
 
     def check_authenticated(self):
         # Ensure authenticated by checking for a populated client identity, otherwise raise 401
-        if not web.ctx.webauthn2_context and web.ctx.webauthn2_context.client:
-            raise Unauthorized()
+        if REQUIRE_AUTHENTICATION:
+            if AUTHENTICATION == "webauthn" and not (web.ctx.webauthn2_context and web.ctx.webauthn2_context.client):
+                raise Unauthorized()
 
     def trace(self, msg):
         web.ctx.deriva_request_trace(msg)
