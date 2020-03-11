@@ -43,7 +43,7 @@ class ExportFiles(RestHandler):
                         quiet=stob(self.config.get("quiet_logging", False)),
                         propagate_logs=stob(self.config.get("propagate_logs", True)),
                         allow_anonymous=stob(self.config.get("allow_anonymous", False)),
-                        max_payload_size=self.config.get(max_payload_size_mb))
+                        max_payload_size_mb=self.config.get(max_payload_size_mb))
         uri_list = list()
         set_location_header = False if len(output.keys()) > 1 else True
         for file_path, file_metadata in output.items():

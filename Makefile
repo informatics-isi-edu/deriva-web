@@ -16,6 +16,7 @@ endif
 HTTPDCONFDIR=/etc/$(HTTPSVC)/conf.d
 WSGISOCKETPREFIX=/var/run/$(HTTPSVC)/wsgi
 DAEMONUSER=deriva
+DERIVAWEBDATADIR=/var/www/deriva
 
 # turn off annoying built-ins
 .SUFFIXES:
@@ -28,7 +29,7 @@ UNINSTALL=$(UNINSTALL_DIRS)
 #       $(BINDIR)/deriva-db-init
 
 # make this the default target
-install: conf/wsgi_deriva.conf
+install: conf/wsgi_deriva.conf conf/deriva_config.json
 		pip3 install --no-deps 'bagit==1.7.0'
 		pip3 install --no-deps 'bdbag>=1.5.6'
 		pip3 install --no-deps .
@@ -39,16 +40,20 @@ testvars:
 		@echo SYSPREFIX=$(SYSPREFIX)
 		@echo SHAREDIR=$(SHAREDIR)
 		@echo HTTPDCONFDIR=$(HTTPDCONFDIR)
+		@echo DERIVAWEBDATADIR=${DERIVAWEBDATADIR}
 		@echo WSGISOCKETPREFIX=$(WSGISOCKETPREFIX)
 		@echo PYLIBDIR=$(PYLIBDIR)
 
 deploy: install
-		env SHAREDIR=$(SHAREDIR) HTTPDCONFDIR=$(HTTPDCONFDIR) SYSPREFIX=$(SYSPREFIX) deriva-web-deploy
+		env SHAREDIR=$(SHAREDIR) HTTPDCONFDIR=$(HTTPDCONFDIR) DERIVAWEBDATADIR=${DERIVAWEBDATADIR} SYSPREFIX=$(SYSPREFIX) deriva-web-deploy
 
 redeploy: uninstall deploy
 
 conf/wsgi_deriva.conf: conf/wsgi_deriva.conf.in
 		./install-script -M sed -R @PYLIBDIR@=$(PYLIBDIR) @WSGISOCKETPREFIX@=$(WSGISOCKETPREFIX) @DAEMONUSER@=$(DAEMONUSER) -o root -g root -m a+r -p -D $< $@
+
+conf/deriva_config.json: conf/deriva_config.json.in
+		./install-script -M sed -R  @DERIVAWEBDATADIR@=${DERIVAWEBDATADIR} -o root -g root -m a+r -p -D $< $@
 
 uninstall:
 		-pip3 uninstall -y deriva.web

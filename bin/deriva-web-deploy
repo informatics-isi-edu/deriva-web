@@ -33,6 +33,7 @@ SYSPREFIX=${SYSPREFIX:-/usr}
 SHAREDIR=${SHAREDIR:-${SYSPREFIX}/share/deriva}
 DERIVACONFDIR=${DERIVACONFDIR:-${SHAREDIR}/conf.d}
 HTTPDCONFDIR=${HTTPDCONFDIR:-/etc/httpd/conf.d}
+DERIVAWEBDATADIR=${DERIVAWEBDATADIR:-/var/www/deriva}
 SU=su
 
 # named parameters that can be set by caller or on command-line above to override defaults...
@@ -83,9 +84,9 @@ usermod -a -G apache ${DAEMONUSER}
 chmod og+rx /home/${DAEMONUSER}
 chgrp apache /home/${DAEMONUSER}
 
-mkdir -p /var/www/deriva
-chown -R ${DAEMONUSER} /var/www/deriva
-chgrp -R apache /var/www/deriva
+mkdir -p ${DERIVAWEBDATADIR}
+chown -R ${DAEMONUSER} ${DERIVAWEBDATADIR}
+chgrp -R apache ${DERIVAWEBDATADIR}
 
 pgid ${DAEMONUSER} || pgcreateuser -D -R -S ${DAEMONUSER}
 
@@ -105,8 +106,8 @@ then
     semanage fcontext --add --type "${SEMANAGE_HTTPD_SYS_CONTENT_T}" "/home/${DAEMONUSER}/conf.d(/.*)?"
     semanage fcontext --add --type "${SEMANAGE_HTTPD_SYS_CONTENT_T}" "/home/${DAEMONUSER}/deriva_config.json"
     restorecon -rv /home/${DAEMONUSER}
-    semanage fcontext --add --type "${SEMANAGE_HTTPD_SYS_RW_CONTENT_T}" "/var/www/deriva(/.*)?"
-    restorecon -rv /var/www/deriva
+    semanage fcontext --add --type "${SEMANAGE_HTTPD_SYS_RW_CONTENT_T}" "${DERIVAWEBDATADIR}(/.*)?"
+    restorecon -rv ${DERIVAWEBDATADIR}
     setsebool -P httpd_enable_homedirs on
     setsebool -P httpd_can_network_connect on
     setsebool -P httpd_execmem on
