@@ -1,6 +1,6 @@
 {
   "propagate_logs": true,
   "quiet_logging": false,
-  "allow_anonymous": false,
-  "max_payload_size_mb": null
+  "allow_anonymous_download": false,
+  "max_payload_size_mb": 0
 }

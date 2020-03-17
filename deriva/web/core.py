@@ -43,7 +43,7 @@ STORAGE_BASE_DIR = os.path.join("deriva", "data")
 DEFAULT_CONFIG = {
     "storage_path": os.path.abspath(os.path.join(SERVICE_BASE_DIR, STORAGE_BASE_DIR)),
     "authentication": None,
-    "require_authentication": True,
+    "require_authentication": False,
     "404_html": "<html><body><h1>Resource Not Found</h1><p>The requested resource could not be found at this location."
                 "</p><p>Additional information:</p><p><pre>%(message)s</pre></p></body></html>",
     "403_html": "<html><body><h1>Access Forbidden</h1><p>%(message)s</p></body></html>",

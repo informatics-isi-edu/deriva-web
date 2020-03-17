@@ -1,0 +1,5 @@
+#!/bin/bash
+HOURS=24
+DAYS=30
+find @DERIVAWEBDATADIR@/data/export -mindepth 2 -maxdepth 2 -type d -mmin +$((60*${HOURS})) -exec rm -rf {} +
+find @DERIVAWEBDATADIR@/data/export -mindepth 1 -maxdepth 1 -type d -mmin +$((60*${HOURS}*${DAYS})) -exec rm -rf {} +

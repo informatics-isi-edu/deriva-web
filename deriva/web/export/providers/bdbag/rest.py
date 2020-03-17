@@ -15,14 +15,16 @@
 #
 import json
 import web
-from deriva.web.core import web_method, RestHandler
-from deriva.web.export.api import create_output_dir, export, HANDLER_CONFIG_FILE
+from deriva.web.core import web_method, get_client_identity, RestHandler, REQUIRE_AUTHENTICATION
+from deriva.web.export.api import create_output_dir, export, HANDLER_CONFIG_FILE, DEFAULT_HANDLER_CONFIG
 from deriva.core import stob
 
 
 class ExportBag(RestHandler):
     def __init__(self):
-        RestHandler.__init__(self, handler_config_file=HANDLER_CONFIG_FILE)
+        RestHandler.__init__(self,
+                             handler_config_file=HANDLER_CONFIG_FILE,
+                             default_handler_config=DEFAULT_HANDLER_CONFIG)
 
     @web_method()
     def POST(self):
@@ -39,8 +41,9 @@ class ExportBag(RestHandler):
                         public=public,
                         quiet=stob(self.config.get("quiet_logging", False)),
                         propagate_logs=stob(self.config.get("propagate_logs", True)),
-                        allow_anonymous=stob(self.config.get("allow_anonymous", False)),
-                        max_payload_size_mb=self.config.get(max_payload_size_mb))
+                        require_authentication=REQUIRE_AUTHENTICATION,
+                        allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
+                        max_payload_size_mb=self.config.get("max_payload_size_mb"))
         output_metadata = list(output.values())[0] or {}
 
         set_location_header = False

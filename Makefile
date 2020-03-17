@@ -29,7 +29,7 @@ UNINSTALL=$(UNINSTALL_DIRS)
 #       $(BINDIR)/deriva-db-init
 
 # make this the default target
-install: conf/wsgi_deriva.conf conf/deriva_config.json
+install: conf/wsgi_deriva.conf conf/deriva_config.json bin/deriva-web-export-prune
 		pip3 install --no-deps 'bagit==1.7.0'
 		pip3 install --no-deps 'bdbag>=1.5.6'
 		pip3 install --no-deps .
@@ -53,6 +53,9 @@ conf/wsgi_deriva.conf: conf/wsgi_deriva.conf.in
 		./install-script -M sed -R @PYLIBDIR@=$(PYLIBDIR) @WSGISOCKETPREFIX@=$(WSGISOCKETPREFIX) @DAEMONUSER@=$(DAEMONUSER) -o root -g root -m a+r -p -D $< $@
 
 conf/deriva_config.json: conf/deriva_config.json.in
+		./install-script -M sed -R  @DERIVAWEBDATADIR@=${DERIVAWEBDATADIR} -o root -g root -m a+r -p -D $< $@
+
+bin/deriva-web-export-prune: conf/deriva-web-export-prune.in
 		./install-script -M sed -R  @DERIVAWEBDATADIR@=${DERIVAWEBDATADIR} -o root -g root -m a+r -p -D $< $@
 
 uninstall:

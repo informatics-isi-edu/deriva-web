@@ -18,7 +18,7 @@ import web
 import urllib
 from deriva.core.utils.mime_utils import guess_content_type
 from deriva.web.core import web_method, RestHandler, NotFound, Forbidden, BadRequest, STORAGE_PATH
-from deriva.web.export.api import check_access, HANDLER_CONFIG_FILE
+from deriva.web.export.api import check_access, get_staging_path, HANDLER_CONFIG_FILE
 
 
 class ExportRetrieve (RestHandler):
@@ -40,7 +40,7 @@ class ExportRetrieve (RestHandler):
 
     @web_method()
     def GET(self, key, requested_file=None):
-        export_dir = os.path.abspath(os.path.join(STORAGE_PATH, "export", key))
+        export_dir = os.path.abspath(os.path.join(get_staging_path(), key))
         if not os.path.isdir(export_dir):
             raise NotFound("The resource %s does not exist. It was never created or has been deleted." % key)
         if not check_access(export_dir):
