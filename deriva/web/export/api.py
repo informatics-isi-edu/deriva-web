@@ -18,6 +18,8 @@ import errno
 import logging
 import uuid
 import web
+import shutil
+from pathlib import Path
 from requests import HTTPError
 from deriva.core import urlparse, format_credential, format_exception, get_new_requests_session
 from deriva.transfer import GenericDownloader
@@ -32,7 +34,8 @@ DEFAULT_HANDLER_CONFIG = {
   "propagate_logs": True,
   "quiet_logging": False,
   "allow_anonymous_download": False,
-  "max_payload_size_mb": 0
+  "max_payload_size_mb": 0,
+  "dir_auto_purge_threshold": 5
 }
 
 logger = logging.getLogger()
@@ -61,6 +64,23 @@ def create_output_dir():
             if error.errno != errno.EEXIST:
                 raise
     return key, output_dir
+
+
+def purge_output_dirs(threshold=0, count=1):
+    if threshold < 1:
+        return
+    paths = [os.fspath(path) for path in sorted(
+        Path(get_staging_path()).iterdir(), key=os.path.getctime, reverse=True)]
+    if not paths or (len(paths) <= threshold):
+        return
+
+    for i in range(count):
+        try:
+            path = paths.pop()
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+        except Exception as e:
+            logging.warning(format_exception(e))
 
 
 def get_staging_path():

@@ -16,7 +16,8 @@
 import json
 import web
 from deriva.web.core import web_method, get_client_identity, RestHandler, REQUIRE_AUTHENTICATION
-from deriva.web.export.api import create_output_dir, export, HANDLER_CONFIG_FILE, DEFAULT_HANDLER_CONFIG
+from deriva.web.export.api import create_output_dir, purge_output_dirs, export, HANDLER_CONFIG_FILE, \
+    DEFAULT_HANDLER_CONFIG
 from deriva.core import stob
 
 
@@ -29,6 +30,7 @@ class ExportBag(RestHandler):
     @web_method()
     def POST(self):
         self.check_authenticated()
+        purge_output_dirs(self.config.get("dir_auto_purge_threshold", 0))
         key, output_dir = create_output_dir()
         url = ''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "", key])
         params = self.parse_querystr(web.ctx.query)
