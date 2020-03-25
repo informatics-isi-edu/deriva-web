@@ -16,7 +16,7 @@
 import os
 import json
 import web
-from deriva.web.core import web_method, get_client_identity, RestHandler, REQUIRE_AUTHENTICATION
+from deriva.web.core import web_method, get_client_identity, RestHandler
 from deriva.web.export.api import create_output_dir, purge_output_dirs, export, HANDLER_CONFIG_FILE
 from deriva.core import stob
 from deriva.transfer import GenericDownloader
@@ -28,7 +28,9 @@ class ExportFiles(RestHandler):
 
     @web_method()
     def POST(self):
-        self.check_authenticated()
+        require_authentication = stob(self.config.get("require_authentication", True))
+        if require_authentication:
+            self.check_authenticated()
         purge_output_dirs(self.config.get("dir_auto_purge_threshold", 5))
         key, output_dir = create_output_dir()
         url = ''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "", key])
@@ -43,7 +45,7 @@ class ExportFiles(RestHandler):
                         public=public,
                         quiet=stob(self.config.get("quiet_logging", False)),
                         propagate_logs=stob(self.config.get("propagate_logs", True)),
-                        require_authentication=REQUIRE_AUTHENTICATION,
+                        require_authentication=require_authentication,
                         allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
                         max_payload_size_mb=self.config.get("max_payload_size_mb"))
         uri_list = list()

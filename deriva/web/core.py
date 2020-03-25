@@ -64,7 +64,6 @@ STORAGE_PATH = SERVICE_CONFIG.get('storage_path')
 
 # instantiate webauthn2 manager if using webauthn
 AUTHENTICATION = SERVICE_CONFIG.get("authentication", None)
-REQUIRE_AUTHENTICATION = SERVICE_CONFIG.get("require_authentication", True)
 webauthn2_manager = webauthn2.Manager() if AUTHENTICATION == "webauthn" else None
 
 # setup logger and web request log helpers
@@ -361,9 +360,8 @@ class RestHandler(object):
 
     def check_authenticated(self):
         # Ensure authenticated by checking for a populated client identity, otherwise raise 401
-        if REQUIRE_AUTHENTICATION:
-            if AUTHENTICATION == "webauthn" and not (web.ctx.webauthn2_context and web.ctx.webauthn2_context.client):
-                raise Unauthorized()
+        if AUTHENTICATION == "webauthn" and not (web.ctx.webauthn2_context and web.ctx.webauthn2_context.client):
+            raise Unauthorized()
 
     def trace(self, msg):
         web.ctx.deriva_request_trace(msg)

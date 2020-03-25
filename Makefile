@@ -17,7 +17,6 @@ HTTPDCONFDIR=/etc/$(HTTPSVC)/conf.d
 WSGISOCKETPREFIX=/var/run/$(HTTPSVC)/wsgi
 DAEMONUSER=deriva
 DERIVAWEBDATADIR=/var/www/deriva
-DERIVAWEB_REQUIREAUTH=true
 
 # turn off annoying built-ins
 .SUFFIXES:
@@ -42,12 +41,11 @@ testvars:
 		@echo SHAREDIR=$(SHAREDIR)
 		@echo HTTPDCONFDIR=$(HTTPDCONFDIR)
 		@echo DERIVAWEBDATADIR=${DERIVAWEBDATADIR}
-		@echo DERIVAWEB_REQUIREAUTH=${DERIVAWEB_REQUIREAUTH}
 		@echo WSGISOCKETPREFIX=$(WSGISOCKETPREFIX)
 		@echo PYLIBDIR=$(PYLIBDIR)
 
 deploy: install force
-		env SHAREDIR=$(SHAREDIR) HTTPDCONFDIR=$(HTTPDCONFDIR) DERIVAWEBDATADIR=${DERIVAWEBDATADIR} DERIVAWEB_REQUIREAUTH=${DERIVAWEB_REQUIREAUTH} SYSPREFIX=$(SYSPREFIX) deriva-web-deploy
+		env SHAREDIR=$(SHAREDIR) HTTPDCONFDIR=$(HTTPDCONFDIR) DERIVAWEBDATADIR=${DERIVAWEBDATADIR} SYSPREFIX=$(SYSPREFIX) deriva-web-deploy
 
 redeploy: uninstall deploy
 
@@ -55,7 +53,7 @@ conf/wsgi_deriva.conf: conf/wsgi_deriva.conf.in force
 		./install-script -M sed -R @PYLIBDIR@=$(PYLIBDIR) @WSGISOCKETPREFIX@=$(WSGISOCKETPREFIX) @DAEMONUSER@=$(DAEMONUSER) -o root -g root -m a+r -p -D $< $@
 
 conf/deriva_config.json: conf/deriva_config.json.in force
-		./install-script -M sed -R  @DERIVAWEBDATADIR@=${DERIVAWEBDATADIR} @DERIVAWEB_REQUIREAUTH@=${DERIVAWEB_REQUIREAUTH} -o root -g root -m a+r -p -D $< $@
+		./install-script -M sed -R  @DERIVAWEBDATADIR@=${DERIVAWEBDATADIR} -o root -g root -m a+r -p -D $< $@
 
 bin/deriva-web-export-prune: conf/deriva-web-export-prune.in force
 		./install-script -M sed -R  @DERIVAWEBDATADIR@=${DERIVAWEBDATADIR} -o root -g root -m a+r -p -D $< $@
@@ -66,7 +64,7 @@ uninstall: force
 		rm -rf /home/${DAEMONUSER}/conf.d
 		rm -f ${HTTPDCONFDIR}/wsgi_deriva.conf
 		rm -f /etc/cron.daily/deriva-web-export-prune
-#       -rmdir --ignore-fail-on-non-empty -p $(UNINSTALL_DIRS)
+		-rmdir --ignore-fail-on-non-empty -p $(UNINSTALL_DIRS)
 
 preinstall_centos: force
 		yum -y install python3 python3-pip python3-psycopg2 python3-dateutil pytz python3-tzlocal

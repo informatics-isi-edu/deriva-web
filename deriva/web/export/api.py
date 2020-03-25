@@ -33,6 +33,7 @@ HANDLER_CONFIG_FILE = os.path.join(DEFAULT_HANDLER_CONFIG_DIR, "export", "export
 DEFAULT_HANDLER_CONFIG = {
   "propagate_logs": True,
   "quiet_logging": False,
+  "require_authentication": True,
   "allow_anonymous_download": False,
   "max_payload_size_mb": 0,
   "dir_auto_purge_threshold": 5

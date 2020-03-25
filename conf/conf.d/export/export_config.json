@@ -1,6 +1,7 @@
 {
   "propagate_logs": true,
   "quiet_logging": false,
+  "require_authentication": true,
   "allow_anonymous_download": false,
   "max_payload_size_mb": 0,
   "dir_auto_purge_threshold": 5
