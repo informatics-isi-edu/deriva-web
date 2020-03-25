@@ -1,9 +1,0 @@
-{
-    "storage_path": "/var/www/deriva/data",
-    "authentication":"webauthn",
-    "require_authentication": true,
-    "404_html": "<html><body><h1>Resource Not Found</h1><p>The requested resource could not be found at this location.</p><p>Additional information:</p><p><pre>%(message)s</pre></p></body></html>",
-    "403_html": "<html><body><h1>Access Forbidden</h1><p>%(message)s</p></body></html>",
-    "401_html": "<html><body><h1>Authentication Required</h1><p>%(message)s</p></body></html>",
-    "400_html": "<html><body><h1>Bad Request</h1><p>One or more request parameters are incorrect.</p><p>Additional information:</p><p><pre>%(message)s</pre></p></body></html>"
-}

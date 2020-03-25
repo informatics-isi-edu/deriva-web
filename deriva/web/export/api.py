@@ -69,9 +69,11 @@ def create_output_dir():
 def purge_output_dirs(threshold=0, count=1):
     if threshold < 1:
         return
-    paths = [os.fspath(path) for path in sorted(
-        Path(get_staging_path()).iterdir(), key=os.path.getctime, reverse=True)]
-    if not paths or (len(paths) <= threshold):
+    basedir = get_staging_path()
+    if not os.path.isdir(basedir):
+        return
+    paths = [os.fspath(path) for path in sorted(Path(basedir).iterdir(), key=os.path.getctime, reverse=True)]
+    if not paths or (len(paths) < threshold):
         return
 
     for i in range(count):

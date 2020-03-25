@@ -30,7 +30,7 @@ class ExportBag(RestHandler):
     @web_method()
     def POST(self):
         self.check_authenticated()
-        purge_output_dirs(self.config.get("dir_auto_purge_threshold", 0))
+        purge_output_dirs(self.config.get("dir_auto_purge_threshold", 5))
         key, output_dir = create_output_dir()
         url = ''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "", key])
         params = self.parse_querystr(web.ctx.query)

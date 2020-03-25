@@ -34,6 +34,7 @@ SHAREDIR=${SHAREDIR:-${SYSPREFIX}/share/deriva}
 DERIVACONFDIR=${DERIVACONFDIR:-${SHAREDIR}/conf.d}
 HTTPDCONFDIR=${HTTPDCONFDIR:-/etc/httpd/conf.d}
 DERIVAWEBDATADIR=${DERIVAWEBDATADIR:-/var/www/deriva}
+DERIVAWEB_REQUIREAUTH=${DERIVAWEB_REQUIREAUTH:-true}
 SU=su
 
 # named parameters that can be set by caller or on command-line above to override defaults...
