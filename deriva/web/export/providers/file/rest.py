@@ -47,7 +47,8 @@ class ExportFiles(RestHandler):
                         propagate_logs=stob(self.config.get("propagate_logs", True)),
                         require_authentication=require_authentication,
                         allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
-                        max_payload_size_mb=self.config.get("max_payload_size_mb"))
+                        max_payload_size_mb=self.config.get("max_payload_size_mb"),
+                        dcctx_cid="export/file")
         uri_list = list()
         set_location_header = False if len(output.keys()) > 1 else True
         for file_path, file_metadata in output.items():

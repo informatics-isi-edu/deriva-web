@@ -47,7 +47,8 @@ class ExportBag(RestHandler):
                         propagate_logs=stob(self.config.get("propagate_logs", True)),
                         require_authentication=require_authentication,
                         allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
-                        max_payload_size_mb=self.config.get("max_payload_size_mb"))
+                        max_payload_size_mb=self.config.get("max_payload_size_mb"),
+                        dcctx_cid="export/bag")
         output_metadata = list(output.values())[0] or {}
 
         set_location_header = False

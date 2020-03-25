@@ -121,7 +121,8 @@ def export(config=None,
            propagate_logs=True,
            require_authentication=True,
            allow_anonymous_download=False,
-           max_payload_size_mb=None):
+           max_payload_size_mb=None,
+           dcctx_cid="export/unknown"):
 
     log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
                                     log_path=os.path.abspath(os.path.join(base_dir, '.log')),
@@ -195,7 +196,8 @@ def export(config=None,
                                            config=config,
                                            credentials=credentials,
                                            allow_anonymous=allow_anonymous_download,
-                                           max_payload_size_mb=max_payload_size_mb)
+                                           max_payload_size_mb=max_payload_size_mb,
+                                           dcctx_cid=dcctx_cid)
             return downloader.download(identity=identity, wallet=wallet)
         except DerivaDownloadAuthenticationError as e:
             raise Unauthorized(format_exception(e))
