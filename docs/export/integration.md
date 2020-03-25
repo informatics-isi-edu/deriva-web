@@ -18,15 +18,15 @@ The object structure of an export template annotation is defined as follows:
 
 | Variable | Type | Inclusion| Description |
 | --- | --- | --- | --- |
-|`templates` | array[`template`] | required | An array of `template`
+|`templates` | array\[`template`\] | required | An array of `template`
 
 ### `template` (object)
 
 | Variable | Type | Inclusion | Description |
 | --- | --- | --- | --- |
 | `displayname` | string | required | The display name that will be used to populate the Chaise export format drop-down box for this `template`.
-| `type` | string, enum [`"FILE"`,`"BAG"`] | required | One of two keywords; `"FILE"` or `"BAG"`, used to determine the container format for results.
-| `outputs` | array[`output`] | required | An array of `output` objects. See below.
+| `type` | string, enum \[`"FILE"`,`"BAG"`\] | required | One of two keywords; `"FILE"` or `"BAG"`, used to determine the container format for results.
+| `outputs` | array\[`output`\] | required | An array of `output` objects. See below.
 
 ### `output` (object)
 
@@ -79,7 +79,7 @@ The following are some examples to better understand the output syntax. These ar
 
 | Variable | Type | Inclusion | Description |
 | --- | --- | --- | --- |
-| `api` | string, enum [`entity`,`attribute`, `attributegroup`] | required | The type of ERMrest query projection to perform.  Valid values are `entity`,`attribute`, and `attributegroup`.
+| `api` | string, enum \[`entity`,`attribute`, `attributegroup`\] | required | The type of ERMrest query projection to perform.  Valid values are `entity`,`attribute`, and `attributegroup`.
 | `path` | string | optional | An optional ERMrest path predicate. The string MUST be escaped according to [RFC 3986](https://tools.ietf.org/html/rfc3986) if it contains user-generated identifiers that use the reserved character set. See the [ERMRest URL conventions](https://github.com/informatics-isi-edu/ermrest/blob/master/docs/api-doc/index.md#url-conventions) for additional information.
 
 ### `destination` (object)
@@ -178,7 +178,7 @@ filtered set of files from an image asset table.
         {
           "source": {
             "api": "attribute",
-            "path": "pnc:image_files/url:=uri",
+            "path": "pnc:image_files/url:=uri"
           },
           "destination": {
             "name": "images",

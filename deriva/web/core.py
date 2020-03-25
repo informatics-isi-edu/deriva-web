@@ -43,6 +43,7 @@ STORAGE_BASE_DIR = os.path.join("deriva", "data")
 DEFAULT_CONFIG = {
     "storage_path": os.path.abspath(os.path.join(SERVICE_BASE_DIR, STORAGE_BASE_DIR)),
     "authentication": None,
+    "require_authentication": False,
     "404_html": "<html><body><h1>Resource Not Found</h1><p>The requested resource could not be found at this location."
                 "</p><p>Additional information:</p><p><pre>%(message)s</pre></p></body></html>",
     "403_html": "<html><body><h1>Access Forbidden</h1><p>%(message)s</p></body></html>",
@@ -359,7 +360,7 @@ class RestHandler(object):
 
     def check_authenticated(self):
         # Ensure authenticated by checking for a populated client identity, otherwise raise 401
-        if not web.ctx.webauthn2_context and web.ctx.webauthn2_context.client:
+        if AUTHENTICATION == "webauthn" and not (web.ctx.webauthn2_context and web.ctx.webauthn2_context.client):
             raise Unauthorized()
 
     def trace(self, msg):

@@ -15,18 +15,24 @@
 #
 import json
 import web
-from deriva.web.core import web_method, RestHandler
-from deriva.web.export.api import create_output_dir, export, HANDLER_CONFIG_FILE
+from deriva.web.core import web_method, get_client_identity, RestHandler
+from deriva.web.export.api import create_output_dir, purge_output_dirs, export, HANDLER_CONFIG_FILE, \
+    DEFAULT_HANDLER_CONFIG
 from deriva.core import stob
 
 
 class ExportBag(RestHandler):
     def __init__(self):
-        RestHandler.__init__(self, handler_config_file=HANDLER_CONFIG_FILE)
+        RestHandler.__init__(self,
+                             handler_config_file=HANDLER_CONFIG_FILE,
+                             default_handler_config=DEFAULT_HANDLER_CONFIG)
 
     @web_method()
     def POST(self):
-        self.check_authenticated()
+        require_authentication = stob(self.config.get("require_authentication", True))
+        if require_authentication:
+            self.check_authenticated()
+        purge_output_dirs(self.config.get("dir_auto_purge_threshold", 5))
         key, output_dir = create_output_dir()
         url = ''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "", key])
         params = self.parse_querystr(web.ctx.query)
@@ -38,7 +44,11 @@ class ExportBag(RestHandler):
                         service_url=url,
                         public=public,
                         quiet=stob(self.config.get("quiet_logging", False)),
-                        propagate_logs=stob(self.config.get("propagate_logs", True)))
+                        propagate_logs=stob(self.config.get("propagate_logs", True)),
+                        require_authentication=require_authentication,
+                        allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
+                        max_payload_size_mb=self.config.get("max_payload_size_mb"),
+                        dcctx_cid="export/bag")
         output_metadata = list(output.values())[0] or {}
 
         set_location_header = False
@@ -49,7 +59,7 @@ class ExportBag(RestHandler):
         else:
             identifier = output_metadata.get("identifier")
             if identifier:
-                url = ["https://n2t.net/" + identifier, "https://identifiers.org/" + identifier, url]
+                url = ["https://identifiers.org/" + identifier, "https://n2t.net/" + identifier, url]
                 set_location_header = True
 
         return self.create_response(url, set_location_header)

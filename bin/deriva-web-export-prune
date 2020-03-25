@@ -1,3 +1,0 @@
-#!/bin/bash
-HOURS=72
-find /var/www/deriva/data/export -mindepth 1 -maxdepth 1 -type d -mmin +$((60*${HOURS})) -exec rm -rf {} +

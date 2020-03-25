@@ -16,8 +16,8 @@
 import os
 import json
 import web
-from deriva.web.core import web_method, RestHandler
-from deriva.web.export.api import create_output_dir, export, HANDLER_CONFIG_FILE
+from deriva.web.core import web_method, get_client_identity, RestHandler
+from deriva.web.export.api import create_output_dir, purge_output_dirs, export, HANDLER_CONFIG_FILE
 from deriva.core import stob
 from deriva.transfer import GenericDownloader
 
@@ -28,7 +28,10 @@ class ExportFiles(RestHandler):
 
     @web_method()
     def POST(self):
-        self.check_authenticated()
+        require_authentication = stob(self.config.get("require_authentication", True))
+        if require_authentication:
+            self.check_authenticated()
+        purge_output_dirs(self.config.get("dir_auto_purge_threshold", 5))
         key, output_dir = create_output_dir()
         url = ''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "", key])
         params = self.parse_querystr(web.ctx.query)
@@ -41,7 +44,11 @@ class ExportFiles(RestHandler):
                         files_only=True,
                         public=public,
                         quiet=stob(self.config.get("quiet_logging", False)),
-                        propagate_logs=stob(self.config.get("propagate_logs", True)))
+                        propagate_logs=stob(self.config.get("propagate_logs", True)),
+                        require_authentication=require_authentication,
+                        allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
+                        max_payload_size_mb=self.config.get("max_payload_size_mb"),
+                        dcctx_cid="export/file")
         uri_list = list()
         set_location_header = False if len(output.keys()) > 1 else True
         for file_path, file_metadata in output.items():

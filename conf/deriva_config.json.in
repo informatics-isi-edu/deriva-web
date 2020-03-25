@@ -1,5 +1,5 @@
 {
-    "storage_path": "/var/www/deriva/data",
+    "storage_path": "@DERIVAWEBDATADIR@/data",
     "authentication":"webauthn",
     "404_html": "<html><body><h1>Resource Not Found</h1><p>The requested resource could not be found at this location.</p><p>Additional information:</p><p><pre>%(message)s</pre></p></body></html>",
     "403_html": "<html><body><h1>Access Forbidden</h1><p>%(message)s</p></body></html>",

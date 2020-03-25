@@ -18,6 +18,8 @@ import errno
 import logging
 import uuid
 import web
+import shutil
+from pathlib import Path
 from requests import HTTPError
 from deriva.core import urlparse, format_credential, format_exception, get_new_requests_session
 from deriva.transfer import GenericDownloader
@@ -28,6 +30,14 @@ from deriva.web.core import STORAGE_PATH, AUTHENTICATION, DEFAULT_HANDLER_CONFIG
     logger as sys_logger
 
 HANDLER_CONFIG_FILE = os.path.join(DEFAULT_HANDLER_CONFIG_DIR, "export", "export_config.json")
+DEFAULT_HANDLER_CONFIG = {
+  "propagate_logs": True,
+  "quiet_logging": False,
+  "require_authentication": True,
+  "allow_anonymous_download": False,
+  "max_payload_size_mb": 0,
+  "dir_auto_purge_threshold": 5
+}
 
 logger = logging.getLogger()
 
@@ -47,7 +57,7 @@ def configure_logging(level=logging.INFO, log_path=None, propagate=True):
 def create_output_dir():
 
     key = str(uuid.uuid4())
-    output_dir = os.path.abspath(os.path.join(STORAGE_PATH, "export", key))
+    output_dir = os.path.abspath(os.path.join(get_staging_path(), key))
     if not os.path.isdir(output_dir):
         try:
             os.makedirs(output_dir)
@@ -55,6 +65,31 @@ def create_output_dir():
             if error.errno != errno.EEXIST:
                 raise
     return key, output_dir
+
+
+def purge_output_dirs(threshold=0, count=1):
+    if threshold < 1:
+        return
+    basedir = get_staging_path()
+    if not os.path.isdir(basedir):
+        return
+    paths = [os.fspath(path) for path in sorted(Path(basedir).iterdir(), key=os.path.getctime, reverse=True)]
+    if not paths or (len(paths) < threshold):
+        return
+
+    for i in range(count):
+        try:
+            path = paths.pop()
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+        except Exception as e:
+            logging.warning(format_exception(e))
+
+
+def get_staging_path():
+    identity = get_client_identity()
+    subdir = 'anon-%s' % web.ctx.get("ip", "unknown") if not identity else identity.get('id', '').rsplit("/", 1)[1]
+    return os.path.abspath(os.path.join(STORAGE_PATH, "export", subdir or ""))
 
 
 def get_final_output_path(output_path, output_name=None, ext=''):
@@ -83,7 +118,11 @@ def export(config=None,
            public=False,
            files_only=False,
            quiet=False,
-           propagate_logs=True):
+           propagate_logs=True,
+           require_authentication=True,
+           allow_anonymous_download=False,
+           max_payload_size_mb=None,
+           dcctx_cid="export/unknown"):
 
     log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
                                     log_path=os.path.abspath(os.path.join(base_dir, '.log')),
@@ -121,6 +160,7 @@ def export(config=None,
         except (KeyError, AttributeError) as e:
             raise BadRequest('Error parsing configuration: %s' % format_exception(e))
 
+        credentials = None
         session = get_new_requests_session()
         try:
             if token:
@@ -132,7 +172,8 @@ def export(config=None,
                                             username=username,
                                             password=password)
         except (ValueError, HTTPError) as e:
-            raise Unauthorized(format_exception(e))
+            if require_authentication:
+                raise Unauthorized(format_exception(e))
         finally:
             if session:
                 session.close()
@@ -153,7 +194,10 @@ def export(config=None,
                                            output_dir=base_dir,
                                            envars=envars,
                                            config=config,
-                                           credentials=credentials)
+                                           credentials=credentials,
+                                           allow_anonymous=allow_anonymous_download,
+                                           max_payload_size_mb=max_payload_size_mb,
+                                           dcctx_cid=dcctx_cid)
             return downloader.download(identity=identity, wallet=wallet)
         except DerivaDownloadAuthenticationError as e:
             raise Unauthorized(format_exception(e))
