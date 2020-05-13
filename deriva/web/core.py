@@ -43,7 +43,6 @@ STORAGE_BASE_DIR = os.path.join("deriva", "data")
 DEFAULT_CONFIG = {
     "storage_path": os.path.abspath(os.path.join(SERVICE_BASE_DIR, STORAGE_BASE_DIR)),
     "authentication": None,
-    "require_authentication": False,
     "404_html": "<html><body><h1>Resource Not Found</h1><p>The requested resource could not be found at this location."
                 "</p><p>Additional information:</p><p><pre>%(message)s</pre></p></body></html>",
     "403_html": "<html><body><h1>Access Forbidden</h1><p>%(message)s</p></body></html>",
@@ -261,7 +260,6 @@ def client_has_identity(identity):
 
 
 def get_client_identity():
-    get_client_auth_context()
     if web.ctx.webauthn2_context and web.ctx.webauthn2_context.client:
         return web.ctx.webauthn2_context.client
     else:
@@ -350,6 +348,7 @@ class RestHandler(object):
         self.http_etag = None
         self.http_vary = webauthn2_manager.get_http_vary() if webauthn2_manager else None
         self.config = self.load_handler_config(handler_config_file, default_handler_config)
+        web.debug("Using configuration: %s" % json.dumps(self.config))
 
     def load_handler_config(self, config_file, default_config=None):
         config = default_config.copy() if default_config else {}

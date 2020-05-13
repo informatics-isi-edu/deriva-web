@@ -180,10 +180,12 @@ def export(config=None,
                 del session
 
         try:
-            identity = get_client_identity()
+            identity = wallet = None
+            if require_authentication:
+                identity = get_client_identity()
+                wallet = get_client_wallet()
             user_id = username if not identity else identity.get('display_name', identity.get('id'))
             create_access_descriptor(base_dir, identity=None if not identity else identity.get('id'), public=public)
-            wallet = get_client_wallet()
         except (KeyError, AttributeError) as e:
             raise BadRequest(format_exception(e))
 

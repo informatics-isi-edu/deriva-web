@@ -2,7 +2,7 @@
 AllowEncodedSlashes On
 
 WSGIPythonOptimize 1
-WSGIDaemonProcess deriva processes=8 threads=4 user=@DAEMONUSER@ maximum-requests=2000
+WSGIDaemonProcess deriva processes=1 threads=4 user=@DAEMONUSER@ maximum-requests=2000
 WSGIScriptAlias /deriva @PYLIBDIR@/deriva/web/deriva.wsgi
 WSGIPassAuthorization On
 
