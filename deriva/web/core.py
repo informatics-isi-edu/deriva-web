@@ -348,7 +348,7 @@ class RestHandler(object):
         self.http_etag = None
         self.http_vary = webauthn2_manager.get_http_vary() if webauthn2_manager else None
         self.config = self.load_handler_config(handler_config_file, default_handler_config)
-        web.debug("Using configuration: %s" % json.dumps(self.config))
+        # web.debug("Using configuration: %s" % json.dumps(self.config))
 
     def load_handler_config(self, config_file, default_config=None):
         config = default_config.copy() if default_config else {}
