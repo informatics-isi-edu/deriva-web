@@ -122,7 +122,8 @@ def export(config=None,
            require_authentication=True,
            allow_anonymous_download=False,
            max_payload_size_mb=None,
-           dcctx_cid="export/unknown"):
+           dcctx_cid="export/unknown",
+           request_ip="ip-unknown"):
 
     log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
                                     log_path=os.path.abspath(os.path.join(base_dir, '.log')),
@@ -144,7 +145,7 @@ def export(config=None,
                 server["host"] = host
             server["catalog_id"] = catalog_config.get('catalog_id', "1")
 
-            # parse credential params
+            # parse credential params, if found in the request payload (unlikely)
             token = catalog_config.get("token", None)
             username = catalog_config.get("username", "Anonymous")
             password = catalog_config.get("password", None)
@@ -179,19 +180,23 @@ def export(config=None,
                 session.close()
                 del session
 
-        try:
-            identity = wallet = None
-            if require_authentication:
-                identity = get_client_identity()
+        wallet = None
+        if require_authentication:
+            try:
                 wallet = get_client_wallet()
-            user_id = username if not identity else identity.get('display_name', identity.get('id'))
-            create_access_descriptor(base_dir, identity=None if not identity else identity.get('id'), public=public)
-        except (KeyError, AttributeError) as e:
-            raise BadRequest(format_exception(e))
+            except (KeyError, AttributeError) as e:
+                raise BadRequest(format_exception(e))
 
+        identity = get_client_identity()
+        user_id = username if not identity else identity.get('display_name', identity.get('id'))
+        create_access_descriptor(base_dir,
+                                 identity=None if not identity else identity.get('id'),
+                                 public=public or not require_authentication)
         try:
             sys_logger.info("Creating export at [%s] on behalf of user: %s" % (base_dir, user_id))
-            envars = {GenericDownloader.SERVICE_URL_KEY: service_url} if service_url else None
+            envars = {"request_ip": request_ip}
+            if service_url:
+                envars.update({GenericDownloader.SERVICE_URL_KEY: service_url})
             downloader = GenericDownloader(server=server,
                                            output_dir=base_dir,
                                            envars=envars,
