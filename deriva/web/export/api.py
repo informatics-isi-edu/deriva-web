@@ -112,6 +112,13 @@ def check_access(directory):
     return False
 
 
+def get_bearer_token(header):
+    if not header:
+        return None
+    bearer, _, token = header.partition(' ')
+    return token if bearer == 'Bearer' else None
+
+
 def export(config=None,
            base_dir=None,
            service_url=None,
@@ -147,6 +154,7 @@ def export(config=None,
 
             # parse credential params, if found in the request payload (unlikely)
             token = catalog_config.get("token", None)
+            oauth2_token = catalog_config.get("oauth2_token", None)
             username = catalog_config.get("username", "Anonymous")
             password = catalog_config.get("password", None)
 
@@ -169,7 +177,10 @@ def export(config=None,
                 session.cookies.set("webauthn", token, domain=server["host"], path='/')
                 response = session.get(auth_url)
                 response.raise_for_status()
+            if not oauth2_token:
+                oauth2_token = get_bearer_token(web.ctx.env.get('HTTP_AUTHORIZATION'))
             credentials = format_credential(token=token if token else web.cookies().get("webauthn"),
+                                            oauth2_token=oauth2_token,
                                             username=username,
                                             password=password)
         except (ValueError, HTTPError) as e:
@@ -181,13 +192,15 @@ def export(config=None,
                 del session
 
         wallet = None
-        if require_authentication:
+        identity = get_client_identity()
+        if identity:
             try:
                 wallet = get_client_wallet()
             except (KeyError, AttributeError) as e:
                 raise BadRequest(format_exception(e))
+            if require_authentication and not (identity and wallet):
+                raise Unauthorized()
 
-        identity = get_client_identity()
         user_id = username if not identity else identity.get('display_name', identity.get('id'))
         create_access_descriptor(base_dir,
                                  identity=None if not identity else identity.get('id'),
