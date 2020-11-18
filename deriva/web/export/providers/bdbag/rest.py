@@ -48,7 +48,8 @@ class ExportBag(RestHandler):
                         require_authentication=require_authentication,
                         allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
                         max_payload_size_mb=self.config.get("max_payload_size_mb"),
-                        dcctx_cid="export/bag")
+                        dcctx_cid="export/bag",
+                        request_ip=web.ctx.get("ip", "ip-unknown"))
         output_metadata = list(output.values())[0] or {}
 
         set_location_header = False

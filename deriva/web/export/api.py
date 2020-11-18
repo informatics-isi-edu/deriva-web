@@ -112,6 +112,13 @@ def check_access(directory):
     return False
 
 
+def get_bearer_token(header):
+    if not header:
+        return None
+    bearer, _, token = header.partition(' ')
+    return token if bearer == 'Bearer' else None
+
+
 def export(config=None,
            base_dir=None,
            service_url=None,
@@ -122,7 +129,8 @@ def export(config=None,
            require_authentication=True,
            allow_anonymous_download=False,
            max_payload_size_mb=None,
-           dcctx_cid="export/unknown"):
+           dcctx_cid="export/unknown",
+           request_ip="ip-unknown"):
 
     log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
                                     log_path=os.path.abspath(os.path.join(base_dir, '.log')),
@@ -144,8 +152,9 @@ def export(config=None,
                 server["host"] = host
             server["catalog_id"] = catalog_config.get('catalog_id', "1")
 
-            # parse credential params
+            # parse credential params, if found in the request payload (unlikely)
             token = catalog_config.get("token", None)
+            oauth2_token = catalog_config.get("oauth2_token", None)
             username = catalog_config.get("username", "Anonymous")
             password = catalog_config.get("password", None)
 
@@ -168,7 +177,10 @@ def export(config=None,
                 session.cookies.set("webauthn", token, domain=server["host"], path='/')
                 response = session.get(auth_url)
                 response.raise_for_status()
+            if not oauth2_token:
+                oauth2_token = get_bearer_token(web.ctx.env.get('HTTP_AUTHORIZATION'))
             credentials = format_credential(token=token if token else web.cookies().get("webauthn"),
+                                            oauth2_token=oauth2_token,
                                             username=username,
                                             password=password)
         except (ValueError, HTTPError) as e:
@@ -179,19 +191,25 @@ def export(config=None,
                 session.close()
                 del session
 
-        try:
-            identity = wallet = None
-            if require_authentication:
-                identity = get_client_identity()
+        wallet = None
+        identity = get_client_identity()
+        if identity:
+            try:
                 wallet = get_client_wallet()
-            user_id = username if not identity else identity.get('display_name', identity.get('id'))
-            create_access_descriptor(base_dir, identity=None if not identity else identity.get('id'), public=public)
-        except (KeyError, AttributeError) as e:
-            raise BadRequest(format_exception(e))
+            except (KeyError, AttributeError) as e:
+                raise BadRequest(format_exception(e))
+            if require_authentication and not (identity and wallet):
+                raise Unauthorized()
 
+        user_id = username if not identity else identity.get('display_name', identity.get('id'))
+        create_access_descriptor(base_dir,
+                                 identity=None if not identity else identity.get('id'),
+                                 public=public or not require_authentication)
         try:
             sys_logger.info("Creating export at [%s] on behalf of user: %s" % (base_dir, user_id))
-            envars = {GenericDownloader.SERVICE_URL_KEY: service_url} if service_url else None
+            envars = {"request_ip": request_ip}
+            if service_url:
+                envars.update({GenericDownloader.SERVICE_URL_KEY: service_url})
             downloader = GenericDownloader(server=server,
                                            output_dir=base_dir,
                                            envars=envars,
