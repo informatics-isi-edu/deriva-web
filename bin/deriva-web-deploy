@@ -105,6 +105,7 @@ then
     semanage fcontext --add --type "${SEMANAGE_HTTPD_SYS_CONTENT_T}" "/home/${DAEMONUSER}/.deriva(/.*)?"
     semanage fcontext --add --type "${SEMANAGE_HTTPD_SYS_CONTENT_T}" "/home/${DAEMONUSER}/conf.d(/.*)?"
     semanage fcontext --add --type "${SEMANAGE_HTTPD_SYS_CONTENT_T}" "/home/${DAEMONUSER}/deriva_config.json"
+    semanage fcontext --add --type "${SEMANAGE_HTTPD_SYS_CONTENT_T}" "/home/${DAEMONUSER}/.pgpass"
     restorecon -rv /home/${DAEMONUSER}
     semanage fcontext --add --type "${SEMANAGE_HTTPD_SYS_RW_CONTENT_T}" "${DERIVAWEBDATADIR}(/.*)?"
     restorecon -rv ${DERIVAWEBDATADIR}
