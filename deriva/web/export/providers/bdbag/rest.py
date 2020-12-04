@@ -16,7 +16,7 @@
 import json
 import web
 from deriva.web.core import web_method, get_client_identity, RestHandler
-from deriva.web.export.api import create_output_dir, purge_output_dirs, export, HANDLER_CONFIG_FILE, \
+from deriva.web.export.api import create_output_dir, purge_output_dirs, export, get_client_ip, HANDLER_CONFIG_FILE, \
     DEFAULT_HANDLER_CONFIG
 from deriva.core import stob
 
@@ -49,7 +49,7 @@ class ExportBag(RestHandler):
                         allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
                         max_payload_size_mb=self.config.get("max_payload_size_mb"),
                         dcctx_cid="export/bag",
-                        request_ip=web.ctx.get("ip", "ip-unknown"))
+                        request_ip=get_client_ip())
         output_metadata = list(output.values())[0] or {}
 
         set_location_header = False

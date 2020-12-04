@@ -19,6 +19,7 @@ import logging
 import uuid
 import web
 import shutil
+import socket
 from pathlib import Path
 from requests import HTTPError
 from deriva.core import urlparse, format_credential, format_exception, get_new_requests_session
@@ -86,9 +87,22 @@ def purge_output_dirs(threshold=0, count=1):
             logging.warning(format_exception(e))
 
 
+def get_client_ip():
+    ip = web.ctx.env.get('HTTP_X_FORWARDED_FOR', web.ctx.get('ip', ''))
+    for ip in ip.split(','):
+        ip = ip.strip()
+        try:
+            socket.inet_aton(ip)
+            return ip
+        except socket.error:
+            pass
+    return None
+
+
 def get_staging_path():
     identity = get_client_identity()
-    subdir = 'anon-%s' % web.ctx.get("ip", "unknown") if not identity else identity.get('id', '').rsplit("/", 1)[1]
+    subdir = 'anon-%s' % web.cookies().get("webauthn_track", "unknown") \
+        if not identity else identity.get('id', '').rsplit("/", 1)[1]
     return os.path.abspath(os.path.join(STORAGE_PATH, "export", subdir or ""))
 
 
@@ -155,7 +169,7 @@ def export(config=None,
             # parse credential params, if found in the request payload (unlikely)
             token = catalog_config.get("token", None)
             oauth2_token = catalog_config.get("oauth2_token", None)
-            username = catalog_config.get("username", "Anonymous")
+            username = catalog_config.get("username", "anonymous")
             password = catalog_config.get("password", None)
 
             # sanity-check some bag params
@@ -206,7 +220,7 @@ def export(config=None,
                                  identity=None if not identity else identity.get('id'),
                                  public=public or not require_authentication)
         try:
-            sys_logger.info("Creating export at [%s] on behalf of user: %s" % (base_dir, user_id))
+            sys_logger.info("Creating export at [%s] on behalf of %s at %s" % (base_dir, user_id, request_ip))
             envars = {"request_ip": request_ip}
             if service_url:
                 envars.update({GenericDownloader.SERVICE_URL_KEY: service_url})
