@@ -30,8 +30,9 @@ UNINSTALL=$(UNINSTALL_DIRS)
 
 # make this the default target
 install: conf/wsgi_deriva.conf conf/deriva_config.json bin/deriva-web-export-prune
-		pip3 install --no-deps 'bagit==1.7.0'
-		pip3 install --no-deps 'bdbag>=1.5.6'
+		pip3 install --no-deps 'bagit==1.8.1'
+		pip3 install --no-deps 'bagit-profile==1.3.1'
+		pip3 install --no-deps 'bdbag>=1.6.0'
 		pip3 install --no-deps .
 
 testvars:
