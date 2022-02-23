@@ -48,6 +48,7 @@ class ExportFiles(RestHandler):
                         require_authentication=require_authentication,
                         allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
                         max_payload_size_mb=self.config.get("max_payload_size_mb"),
+                        timeout=self.config.get("timeout_secs"),
                         dcctx_cid="export/file")
         uri_list = list()
         set_location_header = False if len(output.keys()) > 1 else True

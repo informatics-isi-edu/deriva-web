@@ -25,7 +25,7 @@ from requests import HTTPError
 from deriva.core import urlparse, format_credential, format_exception, get_new_requests_session
 from deriva.transfer import GenericDownloader
 from deriva.transfer.download import DerivaDownloadAuthenticationError, DerivaDownloadAuthorizationError, \
-    DerivaDownloadConfigurationError
+    DerivaDownloadConfigurationError, DerivaDownloadTimeoutError, DerivaDownloadError
 from deriva.web.core import STORAGE_PATH, AUTHENTICATION, DEFAULT_HANDLER_CONFIG_DIR, client_has_identity, \
     get_client_identity, get_client_wallet, BadRequest, Unauthorized, Forbidden, Conflict, BadGateway, \
     logger as sys_logger
@@ -37,7 +37,8 @@ DEFAULT_HANDLER_CONFIG = {
   "require_authentication": True,
   "allow_anonymous_download": False,
   "max_payload_size_mb": 0,
-  "dir_auto_purge_threshold": 5
+  "dir_auto_purge_threshold": 5,
+  "timeout_secs": 600
 }
 
 logger = logging.getLogger()
@@ -143,6 +144,7 @@ def export(config=None,
            require_authentication=True,
            allow_anonymous_download=False,
            max_payload_size_mb=None,
+           timeout=None,
            dcctx_cid="export/unknown",
            request_ip="ip-unknown"):
 
@@ -231,6 +233,7 @@ def export(config=None,
                                            credentials=credentials,
                                            allow_anonymous=allow_anonymous_download,
                                            max_payload_size_mb=max_payload_size_mb,
+                                           timeout=timeout,
                                            dcctx_cid=dcctx_cid)
             return downloader.download(identity=identity, wallet=wallet)
         except DerivaDownloadAuthenticationError as e:
