@@ -159,7 +159,7 @@ def export(config=None,
            dcctx_cid="export/unknown",
            request_ip="ip-unknown"):
     try:
-        with lock_file(get_lockfile_path(), mode='r', exclusive=not allow_concurrent_download, timeout=5) as lf:
+        with lock_file(get_lockfile_path(), mode='w', exclusive=not allow_concurrent_download, timeout=5) as lf:
             log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
                                             log_path=os.path.abspath(os.path.join(base_dir, '.log')),
                                             propagate=propagate_logs)
@@ -262,5 +262,4 @@ def export(config=None,
                     logger.removeHandler(log_handler)
 
     except Exception as e:
-        raise Forbidden("Unable to acquire resource lock. Exports are limited to a single process per user and there "
-                        "is already an existing export in progress for this user.")
+        raise Forbidden("Multiple concurrent exports per user are not supported. %s" % format_exception(e))
