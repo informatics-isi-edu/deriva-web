@@ -3,6 +3,7 @@
   "quiet_logging": false,
   "require_authentication": true,
   "allow_anonymous_download": false,
+  "allow_concurrent_download": false,
   "max_payload_size_mb": 0,
   "dir_auto_purge_threshold": 5,
   "timeout_secs": 600

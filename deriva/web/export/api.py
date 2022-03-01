@@ -22,7 +22,7 @@ import shutil
 import socket
 from pathlib import Path
 from requests import HTTPError
-from deriva.core import urlparse, format_credential, format_exception, get_new_requests_session
+from deriva.core import urlparse, format_credential, format_exception, get_new_requests_session, lock_file
 from deriva.transfer import GenericDownloader
 from deriva.transfer.download import DerivaDownloadAuthenticationError, DerivaDownloadAuthorizationError, \
     DerivaDownloadConfigurationError, DerivaDownloadTimeoutError, DerivaDownloadError
@@ -36,6 +36,7 @@ DEFAULT_HANDLER_CONFIG = {
   "quiet_logging": False,
   "require_authentication": True,
   "allow_anonymous_download": False,
+  "allow_concurrent_download": False,
   "max_payload_size_mb": 0,
   "dir_auto_purge_threshold": 5,
   "timeout_secs": 600
@@ -102,7 +103,7 @@ def get_client_ip():
 
 def get_staging_path():
     identity = get_client_identity()
-    subdir = 'anon-%s' % web.cookies().get("webauthn_track", "unknown") \
+    subdir = 'anon-%s' % get_client_ip() or "unknown" \
         if not identity else identity.get('id', '').rsplit("/", 1)[1]
     return os.path.abspath(os.path.join(STORAGE_PATH, "export", subdir or ""))
 
@@ -134,6 +135,15 @@ def get_bearer_token(header):
     return token if bearer == 'Bearer' else None
 
 
+def get_lockfile_path():
+    directory = get_staging_path()
+    lockfile = os.path.abspath(os.path.join(directory, ".lock"))
+    if not os.path.isfile(lockfile):
+        with open(lockfile, 'w') as lock:
+            lock.writelines("file mutex\n")
+    return lockfile
+
+
 def export(config=None,
            base_dir=None,
            service_url=None,
@@ -143,108 +153,114 @@ def export(config=None,
            propagate_logs=True,
            require_authentication=True,
            allow_anonymous_download=False,
+           allow_concurrent_download=False,
            max_payload_size_mb=None,
            timeout=None,
            dcctx_cid="export/unknown",
            request_ip="ip-unknown"):
-
-    log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
-                                    log_path=os.path.abspath(os.path.join(base_dir, '.log')),
-                                    propagate=propagate_logs)
     try:
-        if not config:
-            raise BadRequest("No configuration specified.")
-        server = dict()
-        try:
-            # parse host/catalog params
-            catalog_config = config["catalog"]
-            host = catalog_config["host"]
-            if host.startswith("http"):
-                url = urlparse(host)
-                server["protocol"] = url.scheme
-                server["host"] = url.netloc
-            else:
-                server["protocol"] = "https"
-                server["host"] = host
-            server["catalog_id"] = catalog_config.get('catalog_id', "1")
-
-            # parse credential params, if found in the request payload (unlikely)
-            token = catalog_config.get("token", None)
-            oauth2_token = catalog_config.get("oauth2_token", None)
-            username = catalog_config.get("username", "anonymous")
-            password = catalog_config.get("password", None)
-
-            # sanity-check some bag params
-            if "bag" in config:
-                if files_only:
-                    del config["bag"]
-                else:
-                    if not config["bag"].get("bag_archiver"):
-                        config["bag"]["bag_archiver"] = "zip"
-
-        except (KeyError, AttributeError) as e:
-            raise BadRequest('Error parsing configuration: %s' % format_exception(e))
-
-        credentials = None
-        session = get_new_requests_session()
-        try:
-            if token:
-                auth_url = ''.join([server["protocol"], "://", server["host"], "/authn/session"])
-                session.cookies.set("webauthn", token, domain=server["host"], path='/')
-                response = session.get(auth_url)
-                response.raise_for_status()
-            if not oauth2_token:
-                oauth2_token = get_bearer_token(web.ctx.env.get('HTTP_AUTHORIZATION'))
-            credentials = format_credential(token=token if token else web.cookies().get("webauthn"),
-                                            oauth2_token=oauth2_token,
-                                            username=username,
-                                            password=password)
-        except (ValueError, HTTPError) as e:
-            if require_authentication:
-                raise Unauthorized(format_exception(e))
-        finally:
-            if session:
-                session.close()
-                del session
-
-        wallet = None
-        identity = get_client_identity()
-        if identity:
+        with lock_file(get_lockfile_path(), mode='r', exclusive=not allow_concurrent_download, timeout=5) as lf:
+            log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
+                                            log_path=os.path.abspath(os.path.join(base_dir, '.log')),
+                                            propagate=propagate_logs)
             try:
-                wallet = get_client_wallet()
-            except (KeyError, AttributeError) as e:
-                raise BadRequest(format_exception(e))
-            if require_authentication and not (identity and wallet):
-                raise Unauthorized()
+                if not config:
+                    raise BadRequest("No configuration specified.")
+                server = dict()
+                try:
+                    # parse host/catalog params
+                    catalog_config = config["catalog"]
+                    host = catalog_config["host"]
+                    if host.startswith("http"):
+                        url = urlparse(host)
+                        server["protocol"] = url.scheme
+                        server["host"] = url.netloc
+                    else:
+                        server["protocol"] = "https"
+                        server["host"] = host
+                    server["catalog_id"] = catalog_config.get('catalog_id', "1")
 
-        user_id = username if not identity else identity.get('display_name', identity.get('id'))
-        create_access_descriptor(base_dir,
-                                 identity=None if not identity else identity.get('id'),
-                                 public=public or not require_authentication)
-        try:
-            sys_logger.info("Creating export at [%s] on behalf of %s at %s" % (base_dir, user_id, request_ip))
-            envars = {"request_ip": request_ip}
-            if service_url:
-                envars.update({GenericDownloader.SERVICE_URL_KEY: service_url})
-            downloader = GenericDownloader(server=server,
-                                           output_dir=base_dir,
-                                           envars=envars,
-                                           config=config,
-                                           credentials=credentials,
-                                           allow_anonymous=allow_anonymous_download,
-                                           max_payload_size_mb=max_payload_size_mb,
-                                           timeout=timeout,
-                                           dcctx_cid=dcctx_cid)
-            return downloader.download(identity=identity, wallet=wallet)
-        except DerivaDownloadAuthenticationError as e:
-            raise Unauthorized(format_exception(e))
-        except DerivaDownloadAuthorizationError as e:
-            raise Forbidden(format_exception(e))
-        except DerivaDownloadConfigurationError as e:
-            raise Conflict(format_exception(e))
-        except Exception as e:
-            raise BadGateway(format_exception(e))
+                    # parse credential params, if found in the request payload (unlikely)
+                    token = catalog_config.get("token", None)
+                    oauth2_token = catalog_config.get("oauth2_token", None)
+                    username = catalog_config.get("username", "anonymous")
+                    password = catalog_config.get("password", None)
 
-    finally:
-        if log_handler:
-            logger.removeHandler(log_handler)
+                    # sanity-check some bag params
+                    if "bag" in config:
+                        if files_only:
+                            del config["bag"]
+                        else:
+                            if not config["bag"].get("bag_archiver"):
+                                config["bag"]["bag_archiver"] = "zip"
+
+                except (KeyError, AttributeError) as e:
+                    raise BadRequest('Error parsing configuration: %s' % format_exception(e))
+
+                credentials = None
+                session = get_new_requests_session()
+                try:
+                    if token:
+                        auth_url = ''.join([server["protocol"], "://", server["host"], "/authn/session"])
+                        session.cookies.set("webauthn", token, domain=server["host"], path='/')
+                        response = session.get(auth_url)
+                        response.raise_for_status()
+                    if not oauth2_token:
+                        oauth2_token = get_bearer_token(web.ctx.env.get('HTTP_AUTHORIZATION'))
+                    credentials = format_credential(token=token if token else web.cookies().get("webauthn"),
+                                                    oauth2_token=oauth2_token,
+                                                    username=username,
+                                                    password=password)
+                except (ValueError, HTTPError) as e:
+                    if require_authentication:
+                        raise Unauthorized(format_exception(e))
+                finally:
+                    if session:
+                        session.close()
+                        del session
+
+                wallet = None
+                identity = get_client_identity()
+                if identity:
+                    try:
+                        wallet = get_client_wallet()
+                    except (KeyError, AttributeError) as e:
+                        raise BadRequest(format_exception(e))
+                    if require_authentication and not (identity and wallet):
+                        raise Unauthorized()
+
+                user_id = username if not identity else identity.get('display_name', identity.get('id'))
+                create_access_descriptor(base_dir,
+                                         identity=None if not identity else identity.get('id'),
+                                         public=public or not require_authentication)
+                try:
+                    sys_logger.info("Creating export at [%s] on behalf of %s at %s" % (base_dir, user_id, request_ip))
+                    envars = {"request_ip": request_ip}
+                    if service_url:
+                        envars.update({GenericDownloader.SERVICE_URL_KEY: service_url})
+                    downloader = GenericDownloader(server=server,
+                                                   output_dir=base_dir,
+                                                   envars=envars,
+                                                   config=config,
+                                                   credentials=credentials,
+                                                   allow_anonymous=allow_anonymous_download,
+                                                   max_payload_size_mb=max_payload_size_mb,
+                                                   timeout=timeout,
+                                                   dcctx_cid=dcctx_cid)
+                    return downloader.download(identity=identity, wallet=wallet)
+                except DerivaDownloadAuthenticationError as e:
+                    raise Unauthorized(format_exception(e))
+                except DerivaDownloadAuthorizationError as e:
+                    raise Forbidden(format_exception(e))
+                except DerivaDownloadConfigurationError as e:
+                    raise Conflict(format_exception(e))
+                except Exception as e:
+                    raise BadGateway(format_exception(e))
+
+            finally:
+                if log_handler:
+                    logger.removeHandler(log_handler)
+
+    except Exception as e:
+        raise Forbidden("Unable to acquire resource lock. Exports are limited to a single process per user and there "
+                        "is already an existing export in progress for this user.")
