@@ -21,6 +21,7 @@ import web
 import shutil
 import socket
 from pathlib import Path
+from portalocker import LockException, AlreadyLocked
 from requests import HTTPError
 from deriva.core import urlparse, format_credential, format_exception, get_new_requests_session, lock_file
 from deriva.transfer import GenericDownloader
@@ -261,5 +262,5 @@ def export(config=None,
                 if log_handler:
                     logger.removeHandler(log_handler)
 
-    except Exception as e:
+    except (LockException, AlreadyLocked) as e:
         raise Forbidden("Multiple concurrent exports per user are not supported. %s" % format_exception(e))
