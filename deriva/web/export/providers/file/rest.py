@@ -47,7 +47,7 @@ class ExportFiles(RestHandler):
                         propagate_logs=stob(self.config.get("propagate_logs", True)),
                         require_authentication=require_authentication,
                         allow_anonymous_download=stob(self.config.get("allow_anonymous_download", False)),
-                        allow_concurrent_download=stob(self.config.get("allow_concurrent_download", False)),
+                        allow_concurrent_export=stob(self.config.get("allow_concurrent_export", False)),
                         max_payload_size_mb=self.config.get("max_payload_size_mb"),
                         timeout=self.config.get("timeout_secs"),
                         dcctx_cid="export/file")

@@ -154,13 +154,13 @@ def export(config=None,
            propagate_logs=True,
            require_authentication=True,
            allow_anonymous_download=False,
-           allow_concurrent_download=False,
+           allow_concurrent_export=False,
            max_payload_size_mb=None,
            timeout=None,
            dcctx_cid="export/unknown",
            request_ip="ip-unknown"):
     try:
-        with lock_file(get_lockfile_path(), mode='w', exclusive=not allow_concurrent_download, timeout=5) as lf:
+        with lock_file(get_lockfile_path(), mode='w', exclusive=not allow_concurrent_export, timeout=5) as lf:
             log_handler = configure_logging(logging.WARN if quiet else logging.INFO,
                                             log_path=os.path.abspath(os.path.join(base_dir, '.log')),
                                             propagate=propagate_logs)
@@ -262,5 +262,7 @@ def export(config=None,
                 if log_handler:
                     logger.removeHandler(log_handler)
 
-    except (LockException, AlreadyLocked) as e:
-        raise Forbidden("Multiple concurrent exports per user are not supported. %s" % format_exception(e))
+    except AlreadyLocked as al:
+        raise Forbidden("Multiple concurrent exports per user are not supported. %s" % format_exception(al))
+    except LockException as le:
+        raise BadGateway("Unable to acquire the required resource lock: %s" % format_exception(le))
