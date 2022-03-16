@@ -37,7 +37,7 @@ DEFAULT_HANDLER_CONFIG = {
   "quiet_logging": False,
   "require_authentication": True,
   "allow_anonymous_download": False,
-  "allow_concurrent_download": False,
+  "allow_concurrent_export": False,
   "max_payload_size_mb": 0,
   "dir_auto_purge_threshold": 5,
   "timeout_secs": 600
