@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Southern California
+# Copyright 2016-2023 University of Southern California
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import web
-import deriva.web
 
-"""
-This will run the web.py local server. It is intended for use as a debugging tool only.
-"""
-if __name__ == "__main__":
-    app = web.application(deriva.web.web_urls(), globals())
-    app.run()
+from deriva.web.core import app
+# import these to activate routes!
+import deriva.web.export.rest
+import deriva.web.export.providers.bdbag.rest
+import deriva.web.export.providers.file.rest
+
