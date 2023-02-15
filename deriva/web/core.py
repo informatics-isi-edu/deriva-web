@@ -65,7 +65,7 @@ STORAGE_PATH = SERVICE_CONFIG.get('storage_path')
 
 # instantiate webauthn2 manager if using webauthn
 AUTHENTICATION = SERVICE_CONFIG.get("authentication", None)
-webauthn2_manager = webauthn2.Manager() if AUTHENTICATION == "webauthn" else None
+webauthn2_manager = Manager() if AUTHENTICATION == "webauthn" else None
 
 # setup logger and web request log helpers
 logger = logging.getLogger()
@@ -98,24 +98,22 @@ def request_trace(tracedata):
 
        tracedata: a string representation of trace event data
     """
-    logger.info(request_trace_json(tracedata, log_parts()))
+    logger.info(format_trace_json(
+        tracedata,
+        start_time=deriva_ctx.derivaweb_start_time,
+        req=deriva_ctx.derivaweb_request_guid,
+        client=flask.request.remote_addr,
+        webauthn2_context=deriva_ctx.webauthn2_context,
+    ))
 
+class RestException(webauthn2.util.RestException):
 
-class RestException(web.HTTPError):
-    message = None
-    status = None
-    headers = {
-        'Content-Type': 'text/plain'
-    }
-
-    def __init__(self, message=None, headers=None):
-        if headers:
-            hdr = dict(self.headers)
-            hdr.update(headers)
+    def __init__(self, message=None, headers={}):
+        if message is None:
+            message = self.description
         else:
-            hdr = self.headers
-        msg = message or self.message
-        web.HTTPError.__init__(self, self.status, hdr, msg + '\n')
+            message = '%s Detail: %s' % (self.description, message)
+        super(RestException, self).__init__(message, headers=headers)
 
     @classmethod
     def from_http_error(cls, e):
@@ -157,80 +155,52 @@ class RestException(web.HTTPError):
 
 
 class NotModified(RestException):
-    status = '304 Not Modified'
+    code = 304
     message = 'Resource not modified.'
 
 
-class TemplatedRestException(RestException):
-    error_type = ''
-    supported_content_types = ['text/plain', 'text/html']
-
-    def __init__(self, message=None, headers=None):
-        # filter types to those for which we have a response template, or text/plain which we always support
-        supported_content_types = [
-            content_type for content_type in self.supported_content_types
-            if "%s_%s" % (
-                self.error_type, content_type.split('/')[-1]) in SERVICE_CONFIG or content_type == 'text/plain'
-        ]
-        default_content_type = supported_content_types[0]
-        # find client's preferred type
-        content_type = webauthn2.util.negotiated_content_type(supported_content_types, default_content_type)
-        # lookup template and use it if available
-        template_key = '%s_%s' % (self.error_type, content_type.split('/')[-1])
-        if template_key in SERVICE_CONFIG:
-            message = SERVICE_CONFIG[template_key] % dict(message=message)
-        header = {'Content-Type': content_type}
-        headers = headers.update(header) if headers else header
-        RestException.__init__(self, message, headers)
-        web.header('Content-Type', content_type)
-
-
-class BadRequest(TemplatedRestException):
-    error_type = '400'
-    status = '400 Bad Request'
+class BadRequest(RestException):
+    code = 400
     message = 'Request malformed.'
 
 
-class Unauthorized(TemplatedRestException):
-    error_type = '401'
-    status = '401 Unauthorized'
+class Unauthorized(RestException):
+    code = 401
     message = 'Access requires authentication.'
 
 
-class Forbidden(TemplatedRestException):
-    error_type = '403'
-    status = '403 Forbidden'
+class Forbidden(RestException):
+    code = 403
     message = 'Access forbidden.'
 
 
-class NotFound(TemplatedRestException):
-    error_type = '404'
-    status = '404 Not Found'
+class NotFound(RestException):
+    code = 404
     message = 'Resource not found.'
 
 
 class NoMethod(RestException):
-    status = '405 Method Not Allowed'
+    code = 405
     message = 'Request method not allowed on this resource.'
 
 
 class Conflict(RestException):
-    status = '409 Conflict'
+    code = 409
     message = 'Request conflicts with state of server.'
 
 
 class LengthRequired(RestException):
-    status = '411 Length Required'
+    code = 411
     message = 'Content-Length header is required for this request.'
 
 
 class PreconditionFailed(RestException):
-    status = '412 Precondition Failed'
+    code = 412
     message = 'Resource state does not match requested preconditions.'
 
 
 class BadRange(RestException):
-    status = '416 Requested Range Not Satisfiable'
+    code = 416
     message = 'Requested Range is not satisfiable for this resource.'
 
     def __init__(self, msg=None, headers=None, nbytes=None):
@@ -240,17 +210,17 @@ class BadRange(RestException):
 
 
 class InternalServerError(RestException):
-    status = '500 Internal Server Error'
+    code = 500
     message = 'A processing error prevented the server from fulfilling this request.'
 
 
 class NotImplemented(RestException):
-    status = '501 Not Implemented'
+    code = 501
     message = 'Request not implemented for this resource.'
 
 
 class BadGateway(RestException):
-    status = '502 Bad Gateway'
+    code = 502
     message = 'A downstream processing error prevented the server from fulfilling this request.'
 
 
