@@ -107,7 +107,7 @@ def get_client_ip():
 def get_staging_path():
     identity = get_client_identity()
     subdir = 'anon-%s' % get_client_ip() or "unknown" \
-        if not identity else identity.get('id', '').rsplit("/", 1)[1]
+        if not identity else identity.get('id', '').rsplit("/", 1)[-1]
     return os.path.abspath(os.path.join(STORAGE_PATH, "export", subdir or ""))
 
 
