@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Southern California
+# Copyright 2016-2023 University of Southern California
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 #
 import os
 import json
-import web
-from deriva.web.core import web_method, get_client_identity, RestHandler
-from deriva.web.export.api import create_output_dir, purge_output_dirs, export, HANDLER_CONFIG_FILE
+import flask
+from ....core import app, get_client_identity, RestHandler
+from ...api import create_output_dir, purge_output_dirs, export, HANDLER_CONFIG_FILE
 from deriva.core import stob
 from deriva.transfer import GenericDownloader
 
@@ -26,7 +26,6 @@ class ExportFiles(RestHandler):
     def __init__(self):
         RestHandler.__init__(self, handler_config_file=HANDLER_CONFIG_FILE)
 
-    @web_method()
     def POST(self):
         require_authentication = stob(self.config.get("require_authentication", True))
         if require_authentication:
@@ -62,3 +61,9 @@ class ExportFiles(RestHandler):
             uri_list.append(target_url)
 
         return self.create_response(uri_list, set_location_header)
+
+@app.route('/export/file', methods=['POST'])
+@app.route('/export/file/', methods=['POST'])
+def _export_file_handler():
+    return ExportFile().POST()
+

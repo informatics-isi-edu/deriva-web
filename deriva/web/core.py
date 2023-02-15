@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Southern California
+# Copyright 2016-2023 University of Southern California
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,20 +21,22 @@ import os
 import sys
 import logging
 import traceback
-import web
+import werkzeug
+import flask
 import json
 import random
 import base64
 import datetime
 import pytz
-import webauthn2
 import struct
 import urllib
 import requests
 from collections import OrderedDict
 from logging.handlers import SysLogHandler
-from webauthn2.util import merge_config, context_from_environment
-from webauthn2.rest import get_log_parts, request_trace_json, request_final_json
+import webauthn2.util
+from webauthn2.util import deriva_ctx, deriva_debug, merge_config, negotiated_content_type, Context, context_from_environment
+from webauthn2.manager import Manager
+from webauthn2.rest import format_trace_json, format_final_json
 from deriva.core import format_exception
 
 SERVICE_BASE_DIR = os.path.expanduser("~")
@@ -77,6 +79,10 @@ except:
 syslogformatter = logging.Formatter('deriva.web[%(process)d.%(thread)d]: %(message)s')
 sysloghandler.setFormatter(syslogformatter)
 logger.addHandler(sysloghandler)
+
+
+# the Flask app we will configure with routes
+app = flask.Flask(__name__)
 
 
 def log_parts():
@@ -273,70 +279,75 @@ def get_client_wallet():
     else:
         return None
 
+@app.before_request
+def before_request():
+    # request context init
+    deriva_ctx.derivaweb_request_guid = base64.b64encode(struct.pack('Q', random.getrandbits(64))).decode()
+    deriva_ctx.derivaweb_start_time = datetime.datetime.now(pytz.timezone('UTC'))
+    deriva_ctx.deriva_response = flask.Response() # to accumulate response content by side-effect
+    deriva_ctx.derivaweb_request_content_range = '-/-'
+    deriva_ctx.derivaweb_content_type = None
+    deriva_ctx.derivaweb_request_error_detail = None
+    deriva_ctx.derivaweb_request_trace = request_trace
+    deriva_ctx.webauthn2_manager = webauthn2_manager
 
-def get_client_auth_context(from_environment=True, fallback=True):
+    # call directly into manager code to access full session context from DB
+    # we may need the extra_values wallet info, not passed from mod_webauthn!
+    deriva_ctx.webauthn2_context = webauthn2_manager.get_request_context(
+        require_client=False,
+        require_attributes=False,
+    ) if webauthn2_manager is not None else Context()
 
-    try:
-        if from_environment:
-            web.ctx.webauthn2_context = context_from_environment()
-            if web.ctx.webauthn2_context is not None and web.ctx.webauthn2_context.client is not None:
-                return
-            if fallback:
-                web.debug(
-                    "falling back to webauthn2_manager.get_request_context() after failed context_from_environment()")
-        else:
-            fallback = True
-        if fallback:
-            web.ctx.webauthn2_context = \
-                webauthn2_manager.get_request_context() if webauthn2_manager else web.ctx.webauthn2_context
-    except (ValueError, IndexError) as e:
-        web.debug("Exception getting client authentication context: %s" % str(e))
-        raise Unauthorized("The requested service requires client authentication.")
+@app.after_request
+def after_request(response):
+    if response is deriva_ctx.deriva_response:
+        # normal flow where we are returning our accumulated response
+        pass
+    elif isinstance(response, flask.Response):
+        # flask generated a different response for us!
+        deriva_ctx.deriva_response = response
+    elif isinstance(response, werkzeug.exceptions.HTTPException):
+        deriva_ctx.deriva_response.status = respnse.code
 
+    deriva_ctx.deriva_content_type = response.headers.get('content-type', 'none')
+    if 'content-range' in response.headers:
+        content_range = response.headers['content-range']
+        if content_range.startswith('bytes '):
+            content_range = content_range[6:]
+        deriva_ctx.derivaweb_request_content_range = content_range
+    elif 'content-length' in response.headers:
+        deriva_ctx.derivaweb_request_content_range = '*/%s' % response.headers['content-length']
+    else:
+        deriva_ctx.derivaweb_request_content_range = '*/0'
 
-def web_method():
-    """Augment web handler method with common service logic."""
+    logger.info(format_final_json(
+        environ=flask.request.environ,
+        webauthn2_context=deriva_ctx.webauthn2_context,
+        req=deriva_ctx.derivaweb_request_guid,
+        start_time=deriva_ctx.derivaweb_start_time,
+        client=flask.request.remote_addr,
+        status=deriva_ctx.deriva_response.status,
+        content_range=deriva_ctx.derivaweb_request_content_range,
+        content_type=deriva_ctx.derivaweb_content_type,
+        track=(deriva_ctx.webauthn2_context.tracking if deriva_ctx.webauthn2_context else None),
+    ))
+    return response
 
-    def helper(original_method):
-        def wrapper(*args):
-            # request context init
-            web.ctx.derivaweb_request_guid = base64.b64encode(struct.pack('Q', random.getrandbits(64))).decode()
-            web.ctx.derivaweb_start_time = datetime.datetime.now(pytz.timezone('UTC'))
-            web.ctx.derivaweb_request_content_range = '-/-'
-            web.ctx.derivaweb_content_type = None
-            web.ctx.derivaweb_request_error_detail = None
-            web.ctx.derivaweb_request_trace = request_trace
-            web.ctx.webauthn2_manager = webauthn2_manager
-            web.ctx.webauthn2_context = webauthn2.Context()  # set empty context for sanity
-            web.ctx.webauthn2_context.tracking = None
-            extra_log_parts = dict()
+@app.errorhandler(Exception)
+def error_handler(ev):
+    if isinstance(ev, werkzeug.exceptions.HTTPException):
+        deriva_debug('got HTTPException in derivaweb request handler: %s' % ev)
+        deriva_ctx.deriva_request_error_detail = ev.description
+    else:
+        et, ev2, tb = sys.exc_info()
+        deriva_debug(
+            'Got unhandled exception in derivaweb request handler: %s\n%s\n',
+            ev,
+            ''.join(traceback.format_exception(et, ev2, tb)),
+        )
+        ev = InternalServerError(str(ev))
 
-            # get client authentication context
-            get_client_auth_context(fallback=False)
-            try:
-                # run actual method
-                return original_method(*args)
-            except web.HTTPError as e:
-                web.ctx.deriva_request_error_detail = e.data
-                extra_log_parts.update({'detail': web.ctx.deriva_request_error_detail})
-                raise
-            except Exception as e:
-                # log and rethrow all errors so web.ctx reflects error prior to request_final_log below...
-                et, ev, tb = sys.exc_info()
-                web.debug(
-                    'Got unhandled exception in web_method()',
-                    e,
-                    traceback.format_exception(et, ev, tb),
-                )
-                raise InternalServerError(str(e))
-            finally:
-                # finalize
-                logger.info(request_final_json(log_parts(), extra_log_parts))
-
-        return wrapper
-
-    return helper
-
+    return ev
 
 class RestHandler(object):
     """Generic implementation logic for deriva REST API handlers.

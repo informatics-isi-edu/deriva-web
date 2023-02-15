@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Southern California
+# Copyright 2016-2023 University of Southern California
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@
 # limitations under the License.
 #
 import os
-import web
+import flask
 import urllib
 from deriva.core.utils.mime_utils import guess_content_type
-from deriva.web.core import web_method, RestHandler, NotFound, Forbidden, BadRequest, STORAGE_PATH
-from deriva.web.export.api import check_access, get_staging_path, HANDLER_CONFIG_FILE
+from ..core import app, deriva_ctx, deriva_debug, RestHandler, NotFound, Forbidden, BadRequest, STORAGE_PATH
+from .api import check_access, get_staging_path, HANDLER_CONFIG_FILE
 
 
 class ExportRetrieve (RestHandler):
@@ -38,7 +38,6 @@ class ExportRetrieve (RestHandler):
         web.header('Content-Disposition', "filename*=UTF-8''%s" % urllib.parse.quote(os.path.basename(file_path)))
         return self.get_content(file_path)
 
-    @web_method()
     def GET(self, key, requested_file=None):
         export_dir = os.path.abspath(os.path.join(get_staging_path(), key))
         if not os.path.isdir(export_dir):
@@ -85,3 +84,13 @@ class ExportRetrieve (RestHandler):
 
         # if we got here it means the caller asked for something that does not exist.
         raise NotFound("The requested file \"%s\" does not exist." % requested_file)
+
+@app.route('/export/bdbag/<key>', methods=['GET'])
+@app.route('/export/bdbag/<key>/', methods=['GET'])
+@app.route('/export/bdbag/<key>/<path:requested_file>', methods=['GET'])
+@app.route('/export/file/<key>', methods=['GET'])
+@app.route('/export/file/<key>/', methods=['GET'])
+@app.route('/export/file/<key>/<path:requested_file>', methods=['GET'])
+def _export_retrieve_handler(key, requested_file=None):
+    return ExportRetrieve().GET(key, requested_file=requested_file)
+
