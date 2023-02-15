@@ -41,11 +41,10 @@ class PatternTransformer (RestHandler):
 
     def GET(self, catalog_id):
         warnings.warn("The '{}' service is experimental and not intended for production usage.".format(__name__))
-        logger.debug("query: {}".format(web.ctx.query))
-        params = [urlunquote(param) for param in web.ctx.query[1:].split('&')]
+        params = flask.request.args
         logger.debug("params: {}".format(params))
         try:
-            auth_token = web.cookies().get("webauthn")
+            auth_token = flask.request.cookies.get("webauthn")
             credentials = format_credential(token=auth_token) if auth_token else None
             return pattern_transformer(catalog_id, params, credentials)
         except requests.HTTPError as e:
@@ -96,6 +95,6 @@ def pattern_transformer(catalog_id, params, credentials=None):
             entities = catalog.get(ermpath).json()
             chain = itertools.chain(chain, map(_transform, entities))
 
-    return chain
-
+    deriva_ctx.deriva_response.response = chain
+    return deriva_ctx.deriva_response
 

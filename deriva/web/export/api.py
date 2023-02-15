@@ -93,7 +93,7 @@ def purge_output_dirs(threshold=0, count=1):
 
 
 def get_client_ip():
-    ip = web.ctx.env.get('HTTP_X_FORWARDED_FOR', web.ctx.get('ip', ''))
+    ip = flask.request.environ.get('HTTP_X_FORWARDED_FOR', flask.request.remote_addr)
     for ip in ip.split(','):
         ip = ip.strip()
         try:
@@ -209,8 +209,8 @@ def export(config=None,
                         response = session.get(auth_url)
                         response.raise_for_status()
                     if not oauth2_token:
-                        oauth2_token = get_bearer_token(web.ctx.env.get('HTTP_AUTHORIZATION'))
-                    credentials = format_credential(token=token if token else web.cookies().get("webauthn"),
+                        oauth2_token = get_bearer_token(flask.request.environ.get('HTTP_AUTHORIZATION'))
+                    credentials = format_credential(token=token if token else flask.request.cookies.get("webauthn"),
                                                     oauth2_token=oauth2_token,
                                                     username=username,
                                                     password=password)

@@ -206,7 +206,7 @@ class BadRange(RestException):
     def __init__(self, msg=None, headers=None, nbytes=None):
         RestException.__init__(self, msg, headers)
         if nbytes is not None:
-            web.header('Content-Range', 'bytes */%d' % nbytes)
+            self.headers['content-range'] = 'bytes */%d' % nbytes
 
 
 class InternalServerError(RestException):
@@ -227,25 +227,23 @@ class BadGateway(RestException):
 def client_has_identity(identity):
     if identity == "*":
         return True
-    get_client_auth_context()
-    if web.ctx.webauthn2_context.attributes is not None:
-        for attrib in web.ctx.webauthn2_context.attributes:
+    if deriva_ctx.webauthn2_context.attributes is not None:
+        for attrib in deriva_ctx.webauthn2_context.attributes:
             if attrib['id'] == identity:
                 return True
     return False
 
 
 def get_client_identity():
-    if web.ctx.webauthn2_context and web.ctx.webauthn2_context.client:
-        return web.ctx.webauthn2_context.client
+    if deriva_ctx.webauthn2_context and deriva_ctx.webauthn2_context.client:
+        return deriva_ctx.webauthn2_context.client
     else:
         return None
 
 
 def get_client_wallet():
-    get_client_auth_context(from_environment=False)
-    if web.ctx.webauthn2_context and web.ctx.webauthn2_context.extra_values:
-        return web.ctx.webauthn2_context.extra_values.get("wallet")
+    if deriva_ctx.webauthn2_context and deriva_ctx.webauthn2_context.extra_values:
+        return deriva_ctx.webauthn2_context.extra_values.get("wallet")
     else:
         return None
 
@@ -329,7 +327,7 @@ class RestHandler(object):
         self.http_etag = None
         self.http_vary = webauthn2_manager.get_http_vary() if webauthn2_manager else None
         self.config = self.load_handler_config(handler_config_file, default_handler_config)
-        # web.debug("Using configuration: %s" % json.dumps(self.config))
+        # deriva_debug("Using configuration: %s" % json.dumps(self.config))
 
     def load_handler_config(self, config_file, default_config=None):
         config = default_config.copy() if default_config else {}
@@ -340,11 +338,11 @@ class RestHandler(object):
 
     def check_authenticated(self):
         # Ensure authenticated by checking for a populated client identity, otherwise raise 401
-        if AUTHENTICATION == "webauthn" and not (web.ctx.webauthn2_context and web.ctx.webauthn2_context.client):
+        if AUTHENTICATION == "webauthn" and not (deriva_ctx.webauthn2_context and deriva_ctx.webauthn2_context.client):
             raise Unauthorized()
 
     def trace(self, msg):
-        web.ctx.deriva_request_trace(msg)
+        deriva_ctx.deriva_request_trace(msg)
 
     def parse_querystr(self, querystr):
         if querystr.startswith("?"):
@@ -358,51 +356,42 @@ class RestHandler(object):
                     result[parts[0]] = '='.join(parts[1:])
         return result
 
-    def get_content(self, file_path, get_body=True):
+    def get_content(self, file_path):
+        get_body = flask.request.method.upper() != 'HEAD'
 
-        web.ctx.status = '200 OK'
+        deriva_ctx.deriva_response.status = '200 OK'
         nbytes = os.path.getsize(file_path)
-        web.header('Content-Length', nbytes)
+        deriva_ctx.deriva_response.content_length = nbytes
 
         if not get_body:
-            return
+            return deriva_ctx.deriva_response
 
-        try:
-            f = open(file_path, 'rb')
-            return f.read()
-        except Exception as e:
-            raise NotFound(e)
+        f = open(file_path, 'rb')
+        deriva_ctx.deriva_response.response = f
+        deriva_ctx.deriva_response.direct_passthrough = True
+        return deriva_ctx.deriva_response
 
     def create_response(self, urls, set_location_header=True):
         """Form response for resource creation request."""
-        web.ctx.status = '201 Created'
-        web.header('Content-Type', 'text/uri-list')
+        deriva_ctx.deriva_response.status = '201 Created'
+        deriva_ctx.deriva_response.content_type = 'text/uri-list'
         if isinstance(urls, list):
             location = urls[0]
             body = '\n'.join(urls)
         else:
             location = body = urls
         if set_location_header:
-            web.header('Location', location)
-        web.header('Content-Length', len(body))
-        return body
+            deriva_ctx.deriva_response.location = location
+        deriva_ctx.deriva_response.content_length = len(body)
+        deriva_ctx.deriva_response.set_data(body)
+        return deriva_ctx.deriva_response
 
     def delete_response(self):
         """Form response for deletion request."""
-        web.ctx.status = '204 No Content'
-        return ''
+        deriva_ctx.deriva_response.status = '204 No Content'
+        return deriva_ctx.deriva_response
 
     def update_response(self):
         """Form response for update request."""
-        web.ctx.status = '204 No Content'
-        return ''
-
-    @web_method()
-    def HEAD(self, *args):
-        """Get resource metadata."""
-        self.get_body = False
-        if hasattr(self, 'GET'):
-            return self.GET(*args)
-        else:
-            raise NoMethod()
-
+        deriva_ctx.deriva_response.status = '204 No Content'
+        return deriva_ctx.deriva_response
