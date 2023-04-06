@@ -39,6 +39,7 @@ from deriva.core import format_exception
 
 SERVICE_BASE_DIR = os.path.expanduser("~")
 STORAGE_BASE_DIR = os.path.join("deriva", "data")
+DEFAULT_BUFSIZE = (1024**2) * 10  # 10MB
 
 DEFAULT_CONFIG = {
     "storage_path": os.path.abspath(os.path.join(SERVICE_BASE_DIR, STORAGE_BASE_DIR)),
@@ -387,8 +388,12 @@ class RestHandler(object):
             return
 
         try:
-            f = open(file_path, 'rb')
-            return f.read()
+            with open(file_path, 'rb') as f:
+                while True:
+                    buf = f.read(DEFAULT_BUFSIZE)
+                    if not buf:
+                        break
+                    yield buf
         except Exception as e:
             raise NotFound(e)
 

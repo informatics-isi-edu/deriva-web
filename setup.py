@@ -34,7 +34,7 @@ setup(
     url='https://github.com/informatics-isi-edu/deriva-web',
     maintainer='USC Information Sciences Institute ISR Division',
     maintainer_email='isrd-support@isi.edu',
-    version="0.9.10",
+    version="0.9.11",
     zip_safe=False,
     packages=find_packages(),
     scripts=["bin/deriva-web-deploy", "bin/deriva-web-export-prune"],
@@ -59,7 +59,8 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9'
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10'
         "Topic :: Internet :: WWW/HTTP"
     ]
 )
