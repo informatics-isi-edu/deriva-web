@@ -69,5 +69,5 @@ class ExportFiles(RestHandler):
 @app.route('/export/file', methods=['POST'])
 @app.route('/export/file/', methods=['POST'])
 def _export_file_handler():
-    return ExportFile().POST()
+    return ExportFiles().POST()
 
