@@ -35,8 +35,8 @@ class ExportBag(RestHandler):
         key, output_dir = create_output_dir()
         url = "%s/%s/%s" % (
             flask.request.root_url.rstrip('/'),
-            flask.request.path.rstrip('/'),
-            key
+            flask.request.path.strip('/'),
+            key.lstrip('/'),
         )
         params = flask.request.args
         public = stob(params.get("public", False))
