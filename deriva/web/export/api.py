@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Southern California
+# Copyright 2016-2023 University of Southern California
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ import os
 import errno
 import logging
 import uuid
-import web
+import flask
 import shutil
 import socket
 from pathlib import Path
@@ -27,8 +27,10 @@ from deriva.core import urlparse, format_credential, format_exception, get_new_r
 from deriva.transfer import GenericDownloader
 from deriva.transfer.download import DerivaDownloadAuthenticationError, DerivaDownloadAuthorizationError, \
     DerivaDownloadConfigurationError, DerivaDownloadTimeoutError, DerivaDownloadError
-from deriva.web.core import STORAGE_PATH, AUTHENTICATION, DEFAULT_HANDLER_CONFIG_DIR, client_has_identity, \
-    get_client_identity, get_client_wallet, BadRequest, Unauthorized, Forbidden, Conflict, BadGateway, \
+from ..core import STORAGE_PATH, AUTHENTICATION, DEFAULT_HANDLER_CONFIG_DIR, client_has_identity, \
+    get_client_identity, get_client_wallet, \
+    deriva_ctx, deriva_debug, \
+    BadRequest, Unauthorized, Forbidden, Conflict, BadGateway, \
     logger as sys_logger
 
 HANDLER_CONFIG_FILE = os.path.join(DEFAULT_HANDLER_CONFIG_DIR, "export", "export_config.json")
@@ -91,7 +93,7 @@ def purge_output_dirs(threshold=0, count=1):
 
 
 def get_client_ip():
-    ip = web.ctx.env.get('HTTP_X_FORWARDED_FOR', web.ctx.get('ip', ''))
+    ip = flask.request.environ.get('HTTP_X_FORWARDED_FOR', flask.request.remote_addr)
     for ip in ip.split(','):
         ip = ip.strip()
         try:
@@ -105,7 +107,7 @@ def get_client_ip():
 def get_staging_path():
     identity = get_client_identity()
     subdir = 'anon-%s' % get_client_ip() or "unknown" \
-        if not identity else identity.get('id', '').rsplit("/", 1)[1]
+        if not identity else identity.get('id', '').rsplit("/", 1)[-1]
     return os.path.abspath(os.path.join(STORAGE_PATH, "export", subdir or ""))
 
 
@@ -207,9 +209,9 @@ def export(config=None,
                         response = session.get(auth_url)
                         response.raise_for_status()
                     if not oauth2_token:
-                        oauth2_token = get_bearer_token(web.ctx.env.get('HTTP_AUTHORIZATION'))
+                        oauth2_token = get_bearer_token(flask.request.environ.get('HTTP_AUTHORIZATION'))
                     if server["protocol"] == "https":
-                        credentials = format_credential(token=token if token else web.cookies().get("webauthn"),
+                        credentials = format_credential(token=token if token else flask.request.cookies.get("webauthn"),
                                                         oauth2_token=oauth2_token,
                                                         username=username,
                                                         password=password)

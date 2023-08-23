@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Southern California
+# Copyright 2016-2023 University of Southern California
 # Distributed under the Apache License, Version 2.0. See LICENSE for more info.
 #
 
@@ -44,7 +44,7 @@ setup(
     requires=[
         'requests',
         'certifi',
-        "web.py",
+        "flask",
         "psycopg2",
         "webauthn2",
         "deriva",

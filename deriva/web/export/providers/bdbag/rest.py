@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Southern California
+# Copyright 2016-2023 University of Southern California
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 import json
-import web
-from deriva.web.core import web_method, get_client_identity, RestHandler
-from deriva.web.export.api import create_output_dir, purge_output_dirs, export, get_client_ip, HANDLER_CONFIG_FILE, \
+import flask
+from ....core import app, deriva_ctx, deriva_debug, get_client_identity, RestHandler
+from ...api import create_output_dir, purge_output_dirs, export, get_client_ip, HANDLER_CONFIG_FILE, \
     DEFAULT_HANDLER_CONFIG
 from deriva.core import stob
 
@@ -27,19 +27,22 @@ class ExportBag(RestHandler):
                              handler_config_file=HANDLER_CONFIG_FILE,
                              default_handler_config=DEFAULT_HANDLER_CONFIG)
 
-    @web_method()
     def POST(self):
         require_authentication = stob(self.config.get("require_authentication", True))
         if require_authentication:
             self.check_authenticated()
         purge_output_dirs(self.config.get("dir_auto_purge_threshold", 5))
         key, output_dir = create_output_dir()
-        url = ''.join([web.ctx.home, web.ctx.path, '/' if not web.ctx.path.endswith("/") else "", key])
-        params = self.parse_querystr(web.ctx.query)
+        url = "%s/%s/%s" % (
+            flask.request.root_url.rstrip('/'),
+            flask.request.path.strip('/'),
+            key.lstrip('/'),
+        )
+        params = flask.request.args
         public = stob(params.get("public", False))
 
         # perform the export
-        output = export(config=json.loads(web.data().decode()),
+        output = export(config=json.loads(flask.request.stream.read().decode()),
                         base_dir=output_dir,
                         service_url=url,
                         public=public,
@@ -66,3 +69,13 @@ class ExportBag(RestHandler):
                 set_location_header = True
 
         return self.create_response(url, set_location_header)
+
+@app.route('/export/bdbag', methods=['POST'])
+@app.route('/export/bdbag/', methods=['POST'])
+def _export_bag_handler():
+    if flask.request.method == 'POST':
+        return ExportBag().POST()
+    else:
+        raise NotImplementedError(flask.request.method)
+
+

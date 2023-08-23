@@ -1,5 +1,5 @@
 #
-# Copyright 2018 University of Southern California
+# Copyright 2018-2023 University of Southern California
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ import os
 import platform
 import requests
 import warnings
-import web
+import flask
 from deriva.core import DerivaServer, urlunquote, format_exception, format_credential
-from .core import web_method, RestHandler, RestException, BadRequest
+from .core import app, RestHandler, RestException, BadRequest
 
 #: logger for the module
 logger = logging.getLogger('deriva.web.transform')
@@ -39,14 +39,12 @@ class PatternTransformer (RestHandler):
     def __init__(self):
         super(PatternTransformer, self).__init__()
 
-    @web_method()
     def GET(self, catalog_id):
         warnings.warn("The '{}' service is experimental and not intended for production usage.".format(__name__))
-        logger.debug("query: {}".format(web.ctx.query))
-        params = [urlunquote(param) for param in web.ctx.query[1:].split('&')]
+        params = flask.request.args
         logger.debug("params: {}".format(params))
         try:
-            auth_token = web.cookies().get("webauthn")
+            auth_token = flask.request.cookies.get("webauthn")
             credentials = format_credential(token=auth_token) if auth_token else None
             return pattern_transformer(catalog_id, params, credentials)
         except requests.HTTPError as e:
@@ -55,6 +53,10 @@ class PatternTransformer (RestHandler):
             raise BadRequest(format_exception(e))
         except KeyError as e:
             raise BadRequest(format_exception(e))
+
+@app.route('/transform/format/<catalog_id>', methods=['GET'])
+def _pattern_transform_handler(catalog_id):
+    return PatternTransformer().GET(catalog_id)
 
 
 def pattern_transformer(catalog_id, params, credentials=None):
@@ -93,9 +95,6 @@ def pattern_transformer(catalog_id, params, credentials=None):
             entities = catalog.get(ermpath).json()
             chain = itertools.chain(chain, map(_transform, entities))
 
-    return chain
+    deriva_ctx.deriva_response.response = chain
+    return deriva_ctx.deriva_response
 
-
-def web_urls():
-    """Returns the web urls for the transform service."""
-    return '/transform/format/([^/]+)', PatternTransformer
