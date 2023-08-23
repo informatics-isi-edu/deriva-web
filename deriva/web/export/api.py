@@ -210,10 +210,11 @@ def export(config=None,
                         response.raise_for_status()
                     if not oauth2_token:
                         oauth2_token = get_bearer_token(flask.request.environ.get('HTTP_AUTHORIZATION'))
-                    credentials = format_credential(token=token if token else flask.request.cookies.get("webauthn"),
-                                                    oauth2_token=oauth2_token,
-                                                    username=username,
-                                                    password=password)
+                    if server["protocol"] == "https":
+                        credentials = format_credential(token=token if token else flask.request.cookies.get("webauthn"),
+                                                        oauth2_token=oauth2_token,
+                                                        username=username,
+                                                        password=password)
                 except (ValueError, HTTPError) as e:
                     if require_authentication:
                         raise Unauthorized(format_exception(e))

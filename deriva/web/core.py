@@ -41,6 +41,7 @@ from deriva.core import format_exception
 
 SERVICE_BASE_DIR = os.path.expanduser("~")
 STORAGE_BASE_DIR = os.path.join("deriva", "data")
+DEFAULT_BUFSIZE = (1024**2) * 10  # 10MB
 
 DEFAULT_CONFIG = {
     "storage_path": os.path.abspath(os.path.join(SERVICE_BASE_DIR, STORAGE_BASE_DIR)),
