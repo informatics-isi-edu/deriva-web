@@ -49,6 +49,10 @@ setup(
         "webauthn2",
         "deriva",
         "bdbag"],
+    install_requires=[
+        "flask",
+        "deriva>=1.6",
+        "bdbag[boto,globus]>=1.7"],
     license='Apache 2.0',
     classifiers=[
         'Intended Audience :: Science/Research',
@@ -56,7 +60,6 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         "Operating System :: POSIX",
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
