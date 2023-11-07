@@ -34,7 +34,7 @@ import requests
 from collections import OrderedDict
 from logging.handlers import SysLogHandler
 import webauthn2.util
-from webauthn2.util import deriva_ctx, deriva_debug, merge_config, negotiated_content_type, Context, context_from_environment
+from webauthn2.util import deriva_ctx, deriva_debug, merge_config, negotiated_content_type, Context
 from webauthn2.manager import Manager
 from webauthn2.rest import format_trace_json, format_final_json
 from deriva.core import format_exception

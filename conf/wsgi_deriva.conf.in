@@ -9,8 +9,10 @@ WSGIPassAuthorization On
 WSGISocketPrefix @WSGISOCKETPREFIX@
 
 <Location "/deriva" >
-   AuthType webauthn
-   Require webauthn-optional
+   AuthType none
+   Require all granted
+   #AuthType webauthn
+   #Require webauthn-optional
 
    WSGIProcessGroup deriva
 
