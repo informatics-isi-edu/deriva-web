@@ -70,16 +70,16 @@ webauthn2_manager = Manager() if AUTHENTICATION == "webauthn" else None
 
 # setup logger and web request log helpers
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 try:
     # the use of '/dev/log' causes SysLogHandler to assume the availability of Unix sockets
     sysloghandler = SysLogHandler(address='/dev/log', facility=SysLogHandler.LOG_LOCAL1)
 except:
     # this fallback allows this file to at least be cleanly imported on non-Unix systems
     sysloghandler = logging.StreamHandler()
-syslogformatter = logging.Formatter('deriva.web[%(process)d.%(thread)d]: %(message)s')
+syslogformatter = logging.Formatter('deriva-web[%(process)d.%(thread)d]: %(message)s')
 sysloghandler.setFormatter(syslogformatter)
 logger.addHandler(sysloghandler)
+logger.setLevel(logging.INFO)
 
 
 # the Flask app we will configure with routes
@@ -276,7 +276,7 @@ def after_request(response):
         # flask generated a different response for us!
         deriva_ctx.deriva_response = response
     elif isinstance(response, werkzeug.exceptions.HTTPException):
-        deriva_ctx.deriva_response.status = respnse.code
+        deriva_ctx.deriva_response.status = response.code
 
     deriva_ctx.deriva_content_type = response.headers.get('content-type', 'none')
     if 'content-range' in response.headers:
