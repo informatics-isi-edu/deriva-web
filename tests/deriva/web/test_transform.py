@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import unittest
-from deriva.web import transform
+from deriva.web.transform import transform
 
 
 class TestTransform (unittest.TestCase):

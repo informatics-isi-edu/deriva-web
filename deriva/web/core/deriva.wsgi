@@ -15,8 +15,5 @@
 #
 
 from deriva.web.core import app
-# import these to activate routes!
-import deriva.web.export.rest
-import deriva.web.export.providers.bdbag.rest
-import deriva.web.export.providers.file.rest
 
+application = app
