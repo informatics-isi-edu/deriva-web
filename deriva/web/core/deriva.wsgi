@@ -14,6 +14,6 @@
 # limitations under the License.
 #
 
-from deriva.web.app import app
+from deriva.web.core import app
 
 application = app

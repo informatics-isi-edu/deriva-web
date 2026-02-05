@@ -16,7 +16,7 @@
 import os
 import json
 import flask
-from ....core import app, get_client_identity, RestHandler
+from ....core.app import app, get_client_identity, RestHandler
 from ...api import create_output_dir, purge_output_dirs, export, HANDLER_CONFIG_FILE
 from deriva.core import stob
 from deriva.transfer import GenericDownloader

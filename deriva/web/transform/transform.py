@@ -21,7 +21,7 @@ import requests
 import warnings
 import flask
 from deriva.core import DerivaServer, urlunquote, format_exception, format_credential
-from .core import app, RestHandler, RestException, BadRequest
+from ..core.app import app, RestHandler, RestException, BadRequest
 
 #: logger for the module
 logger = logging.getLogger('deriva.web.transform')

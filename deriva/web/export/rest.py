@@ -17,7 +17,7 @@ import os
 import flask
 import urllib
 from deriva.core.utils.mime_utils import guess_content_type
-from ..core import app, deriva_ctx, deriva_debug, RestHandler, NotFound, Forbidden, BadRequest, STORAGE_PATH
+from ..core.app import app, deriva_ctx, deriva_debug, RestHandler, NotFound, Forbidden, BadRequest, STORAGE_PATH
 from .api import check_access, get_staging_path, HANDLER_CONFIG_FILE
 
 

@@ -14,9 +14,8 @@
 # limitations under the License.
 #
 
-from deriva.web.core import app
+from deriva.web.core.app import app
 # import these to activate routes!
 import deriva.web.export.rest
 import deriva.web.export.providers.bdbag.rest
 import deriva.web.export.providers.file.rest
-

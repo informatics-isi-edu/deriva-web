@@ -15,7 +15,7 @@
 #
 import json
 import flask
-from ....core import app, deriva_ctx, deriva_debug, get_client_identity, RestHandler
+from ....core.app import app, deriva_ctx, deriva_debug, get_client_identity, RestHandler
 from ...api import create_output_dir, purge_output_dirs, export, get_client_ip, HANDLER_CONFIG_FILE, \
     DEFAULT_HANDLER_CONFIG
 from deriva.core import stob
